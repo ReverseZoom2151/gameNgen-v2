@@ -163,8 +163,8 @@ Pretrained weights and demos will be added as training completes. **You can star
 
 ```bash
 # Clone the repository
-git clone https://github.com/ReverseZoom2151/gameNgen-v2.git
-cd gameNgen-v2
+git clone https://github.com/ReverseZoom2151/gamengen-v2.git
+cd gamengen-v2
 
 # Install PyTorch with CUDA 13.0
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
@@ -394,7 +394,7 @@ See configuration files for complete settings.
 ## Project Structure
 
 ```text
-gameNgen-v2/
+gamengen-v2/
 │
 ├── src/                          # Source code
 │   ├── agent/                    # RL agents
@@ -611,7 +611,7 @@ Please ensure:
 This repository:
 
 - **Author:** [ReverseZoom2151](https://github.com/ReverseZoom2151)
-- **Repository:** [gameNgen-v2](https://github.com/ReverseZoom2151/gameNgen-v2)
+- **Repository:** [gamengen-v2](https://github.com/ReverseZoom2151/gamengen-v2)
 - **Implementation Date:** October 2025
 - **Code:** 12,000+ lines of production-ready Python
 
@@ -669,7 +669,7 @@ If you use this code in your research, please cite both the original paper and t
   title={GameNGen: Complete Implementation of Neural Game Engines},
   author={ReverseZoom2151},
   year={2025},
-  url={https://github.com/ReverseZoom2151/gameNgen-v2},
+  url={https://github.com/ReverseZoom2151/gamengen-v2},
   note={Complete 3-tier implementation with 12,000+ lines of production code}
 }
 ```
@@ -762,7 +762,7 @@ Training is mostly hands-off once started.
 - **Distillation script** may need hyperparameter tuning for optimal results
 - **Windows console** may show Unicode character warnings (use `*_simple.py` test scripts)
 
-See [issues](https://github.com/ReverseZoom2151/gameNgen-v2/issues) for known bugs and feature requests.
+See [issues](https://github.com/ReverseZoom2151/gamengen-v2/issues) for known bugs and feature requests.
 
 ---
 
@@ -803,9 +803,9 @@ See [issues](https://github.com/ReverseZoom2151/gameNgen-v2/issues) for known bu
 
 ## Contact
 
-**Repository:** [github.com/ReverseZoom2151/gameNgen-v2](https://github.com/ReverseZoom2151/gameNgen-v2)
+**Repository:** [github.com/ReverseZoom2151/gamengen-v2](https://github.com/ReverseZoom2151/gamengen-v2)
 
-**Issues:** [github.com/ReverseZoom2151/gameNgen-v2/issues](https://github.com/ReverseZoom2151/gameNgen-v2/issues)
+**Issues:** [github.com/ReverseZoom2151/gamengen-v2/issues](https://github.com/ReverseZoom2151/gamengen-v2/issues)
 
 **Email:** [tibi.toca@gmail.com](mailto:tibi.toca@gmail.com)
 
@@ -821,8 +821,8 @@ If you find this project useful, please consider giving it a star!
 
 ```bash
 # Quick start with Tier 1
-git clone https://github.com/ReverseZoom2151/gameNgen-v2.git
-cd gameNgen-v2
+git clone https://github.com/ReverseZoom2151/gamengen-v2.git
+cd gamengen-v2
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
 pip install -r requirements.txt
 python tests/test_all_tiers.py
