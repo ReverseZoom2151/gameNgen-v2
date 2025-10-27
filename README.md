@@ -500,28 +500,6 @@ All tests should pass with output:
 
 ---
 
-## Documentation
-
-### Quick Start Guides
-
-- [**START_TRAINING_NOW.md**](START_TRAINING_NOW.md) - Get started in 5 minutes
-- [**ALL_TIERS_READY.md**](ALL_TIERS_READY.md) - Complete implementation overview
-- [**COMMANDS.md**](COMMANDS.md) - Command reference cheat sheet
-
-### Detailed Guides
-
-- [**THREE_TIERS_GUIDE.md**](THREE_TIERS_GUIDE.md) - Detailed tier comparison
-- [**TIER_COMPARISON.md**](TIER_COMPARISON.md) - Visual tier selection guide
-- [**IMPLEMENTATION_STATUS.md**](IMPLEMENTATION_STATUS.md) - What's implemented
-- [**INSTALL.md**](INSTALL.md) - Detailed installation instructions
-
-### Technical Documentation
-
-- [**IMPLEMENTATION_COMPLETE.md**](IMPLEMENTATION_COMPLETE.md) - Technical details
-- [**COMPLETE_SUMMARY.md**](COMPLETE_SUMMARY.md) - Complete summary
-
----
-
 ## Benchmarks
 
 ### Training Time (RTX A4000 16GB)
