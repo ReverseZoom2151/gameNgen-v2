@@ -89,7 +89,7 @@ class FVDCalculator:
 
         try:
             # Try to use proper I3D implementation if available
-            from pytorch_i3d import InceptionI3d
+            from pytorch_i3d import InceptionI3d  # type: ignore[import]
             self.i3d = InceptionI3d(400, in_channels=3).to(device)
 
             # Load pretrained weights
