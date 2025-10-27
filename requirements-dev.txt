@@ -28,7 +28,9 @@ jupyter>=1.0.0
 ipykernel>=6.23.0
 
 # Advanced features
-pytorch-i3d>=0.1.0  # For proper FVD (if available)
+# For proper FVD with I3D:
+# git clone https://github.com/piergiaj/pytorch-i3d.git
+# cd pytorch-i3d && pip install -e .
 
 # Development utilities
 ipdb>=0.13.13  # Debugging

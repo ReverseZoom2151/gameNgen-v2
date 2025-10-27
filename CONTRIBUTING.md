@@ -18,6 +18,7 @@ Thank you for your interest in contributing to GameNGen! This document provides 
 This project follows a Code of Conduct that all contributors are expected to adhere to. Please be respectful and constructive in all interactions.
 
 **Expected behavior:**
+
 - Be welcoming and inclusive
 - Respect differing viewpoints
 - Accept constructive criticism gracefully
@@ -30,11 +31,13 @@ This project follows a Code of Conduct that all contributors are expected to adh
 ### Reporting Bugs
 
 **Before submitting a bug report:**
+
 - Check existing issues to avoid duplicates
 - Test on the latest version
 - Gather relevant information (error messages, environment details)
 
 **Submit bugs using our issue template** with:
+
 - Clear, descriptive title
 - Steps to reproduce
 - Expected vs. actual behavior
@@ -46,6 +49,7 @@ This project follows a Code of Conduct that all contributors are expected to adh
 We welcome feature requests and improvements!
 
 **Good enhancement proposals include:**
+
 - Clear use case
 - Expected behavior
 - Why this would be valuable
@@ -176,7 +180,7 @@ python tests/test_all_tiers.py
 
 Follow **Conventional Commits** format:
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -185,6 +189,7 @@ Follow **Conventional Commits** format:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -195,7 +200,7 @@ Follow **Conventional Commits** format:
 
 **Examples:**
 
-```
+```text
 feat(diffusion): Add text conditioning support
 
 Implements CLIP-based text conditioning for game generation.
@@ -204,14 +209,14 @@ Allows users to specify game content via text prompts.
 Closes #42
 ```
 
-```
+```text
 fix(agent): Correct reward calculation in DQN
 
 Fixed off-by-one error in reward accumulation that caused
 training instability.
 ```
 
-```
+```text
 docs(readme): Update installation instructions
 
 Added troubleshooting section for common CUDA issues.
@@ -231,6 +236,7 @@ Added troubleshooting section for common CUDA issues.
 ### 1. Before Submitting
 
 **Checklist:**
+
 - [ ] Code follows project style guidelines
 - [ ] All tests pass
 - [ ] Documentation is updated
@@ -254,6 +260,7 @@ pre-commit run --all-files
 **Title:** Clear, descriptive summary
 
 **Description should include:**
+
 - **What** does this PR do?
 - **Why** is this change needed?
 - **How** does it work?
@@ -292,6 +299,7 @@ Describe testing performed
 - Once approved, we'll merge!
 
 **Be patient:**
+
 - Reviews may take a few days
 - Feedback is meant to improve code quality
 - Multiple review rounds are normal
@@ -329,6 +337,7 @@ git push origin feature/my-feature
 ### Working with Multiple Commits
 
 If your PR has multiple commits, we may ask you to:
+
 - **Squash commits** into logical units
 - **Rebase** instead of merge
 - **Clean up** commit history
@@ -362,6 +371,7 @@ pytest --cov=src tests/
 **Naming:** `test_<module>_<function>.py`
 
 **Structure:**
+
 ```python
 def test_my_feature():
     """Test description"""
@@ -389,8 +399,7 @@ def test_my_feature():
 ## Recognition
 
 Contributors will be:
+
 - Listed in release notes
 - Mentioned in documentation
 - Credited appropriately
-
-Thank you for contributing to GameNGen! 🚀
