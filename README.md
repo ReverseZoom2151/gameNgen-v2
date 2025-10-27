@@ -98,6 +98,30 @@ Pretrained weights and demos will be added as training completes. **You can star
 | **2** | DOOM Lite | Production results, scaled training | 1 week | PSNR ~28-29 | Ready |
 | **3** | Full DOOM | Match paper exactly | 3-4 weeks | PSNR 29.4 | Ready |
 
+### Developer Tools & Advanced Features
+
+**Developer Scripts** (`scripts/`):
+
+- **download_models.py** - Pre-download all models and verify setup
+- **resume_training.py** - Resume interrupted training from checkpoints
+- **visualize_data.py** - Analyze and visualize recorded gameplay
+- **compare_models.py** - Compare different checkpoint quality
+- **export_video.py** - Batch export gameplay videos
+- **monitor_training.py** - Real-time training monitoring
+
+**Advanced Features** (Research Extensions):
+
+- **Text Conditioning** - Generate game content from text descriptions using CLIP
+- **Image-Based Modding** - Edit games by modifying frames (insert characters, change layouts)
+- **Hierarchical Memory** - Extended context beyond 64 frames using compressed representations
+- **Multi-Scenario Training** - Train on multiple DOOM maps simultaneously
+
+**Enhanced Metrics** (Complete Paper Implementation):
+
+- **Proper FVD** - Fréchet Video Distance with I3D model
+- **Human Evaluation Framework** - Replicate paper's human study methodology
+- **Comprehensive Metrics** - PSNR, LPIPS, SSIM, FVD all implemented
+
 ---
 
 ## Demo & Results

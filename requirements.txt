@@ -26,6 +26,7 @@ tqdm>=4.65.0
 # Metrics and Evaluation
 scikit-image>=0.21.0
 lpips>=0.1.4
+scipy>=1.10.0  # For FVD calculation
 
 # Utilities
 matplotlib>=3.7.0
