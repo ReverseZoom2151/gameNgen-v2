@@ -1,0 +1,141 @@
+# GameNGen Configuration - Tier 2 (DOOM Lite)
+
+# Project Settings
+project_name: "gamengen-doom-lite"
+experiment_name: "tier2-doom-scaled"
+seed: 42
+
+# Hardware
+device: "cuda"
+num_workers: 4
+mixed_precision: true  # fp16 training
+
+# Paths
+data_dir: "data/recordings_doom"
+checkpoint_dir: "checkpoints_doom"
+log_dir: "logs_doom"
+
+# Environment Settings (DOOM)
+environment:
+  name: "vizdoom"
+  num_actions: 43  # DOOM's full action space
+  resolution:
+    width: 320
+    height: 256
+  frame_stack: 1
+  action_repeat: 4  # Apply each action for 4 frames (paper setting)
+  grayscale: false
+  # ViZDoom specific
+  config_file: "scenarios/basic.cfg"  # Start with basic scenario
+  game_args: "+freelook 1"
+
+# RL Agent Settings (PPO - paper uses PPO for DOOM)
+agent:
+  algorithm: "PPO"
+  total_episodes: 10000  # More episodes than Tier 1
+  buffer_size: 512
+  learning_rate: 1e-4
+  batch_size: 64
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_epsilon: 0.2
+  entropy_coef: 0.1
+  value_coef: 0.5
+  max_grad_norm: 0.5
+  n_steps: 512
+  n_epochs: 10
+  save_freq: 500  # episodes
+
+# Data Collection
+data_collection:
+  episodes_to_collect: 10000
+  frames_per_episode: 1000  # DOOM episodes are longer
+  save_frequency: 10
+  compress: true
+  record_throughout_training: true  # Record all skill levels (paper does this)
+
+# Diffusion Model Settings
+diffusion:
+  # Base Model
+  pretrained_model: "CompVis/stable-diffusion-v1-4"
+  resolution:
+    width: 320
+    height: 256
+  latent_channels: 4
+
+  # Context (DOUBLED for Tier 2)
+  context_length: 64  # 3.2 seconds @ 20 FPS
+  action_embedding_dim: 128
+
+  # Training (10x more steps than Tier 1)
+  batch_size: 16  # Reduced for larger context
+  num_train_steps: 50000  # Much more training
+  learning_rate: 2e-5
+  gradient_accumulation_steps: 2  # Effective batch size 32
+  gradient_clip: 1.0
+
+  # Optimizer
+  optimizer: "AdamW"
+  weight_decay: 0.0
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+
+  # Noise Augmentation (same as paper)
+  noise_augmentation:
+    enabled: true
+    max_noise_level: 0.7
+    num_buckets: 10
+
+  # Scheduler
+  lr_scheduler: "constant"
+  warmup_steps: 1000
+
+  # CFG
+  cfg_drop_prob: 0.1
+  cfg_scale: 1.5
+
+  # Checkpointing (more frequent for longer training)
+  save_every_n_steps: 1000
+  eval_every_n_steps: 1000
+  keep_last_n_checkpoints: 5
+
+# Decoder Fine-tuning (enable for Tier 2)
+decoder:
+  enabled: true  # Fine-tune after main training
+  learning_rate: 1e-4
+  batch_size: 64
+  num_steps: 5000
+
+# Inference Settings
+inference:
+  num_sampling_steps: 4
+  cfg_scale: 1.5
+  add_noise_level: 0.0
+  fps: 20
+
+# Evaluation
+evaluation:
+  compute_metrics: true
+  metrics:
+    - "psnr"
+    - "lpips"
+    - "ssim"
+    - "fvd"  # Add FVD for video quality
+  num_eval_trajectories: 128
+  eval_trajectory_length: 200
+
+# Logging
+logging:
+  use_wandb: false
+  wandb_project: "gamengen-doom"
+  log_interval: 50
+  save_samples: true
+  num_samples_to_save: 8
+
+# Debugging
+debug:
+  enabled: false
+  overfit_single_batch: false
+  limit_train_batches: null
+  profile: false

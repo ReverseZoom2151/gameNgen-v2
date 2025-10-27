@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(systeminfo:*)",
+      "Bash(findstr /C:\"Total Physical Memory\" /C:\"Processor\")",
+      "Bash(wmic path win32_VideoController get:*)",
+      "Bash(wmic:*)",
+      "Bash(findstr:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(powershell \"Get-PSDrive C | Select-Object Used,Free | Format-List\")",
+      "Bash(dir)",
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(pip install:*)",
+      "Bash(git --version:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

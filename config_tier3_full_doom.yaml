@@ -1,0 +1,174 @@
+# GameNGen Configuration - Tier 3 (Full DOOM - Paper Implementation)
+
+# Project Settings
+project_name: "gamengen-doom-full"
+experiment_name: "tier3-full-paper-implementation"
+seed: 42
+
+# Hardware
+device: "cuda"
+num_workers: 8  # More workers for large dataset
+mixed_precision: true
+
+# Paths
+data_dir: "data/recordings_doom_full"
+checkpoint_dir: "checkpoints_doom_full"
+log_dir: "logs_doom_full"
+
+# Environment Settings (DOOM - Full)
+environment:
+  name: "vizdoom"
+  num_actions: 43
+  resolution:
+    width: 320
+    height: 256
+  frame_stack: 1
+  action_repeat: 4
+  grayscale: false
+  # Use multiple scenarios for diversity
+  config_file: "scenarios/multi.cfg"
+  scenarios:
+    - "basic.cfg"
+    - "deadly_corridor.cfg"
+    - "defend_the_center.cfg"
+    - "defend_the_line.cfg"
+    - "health_gathering.cfg"
+
+# RL Agent Settings (PPO - Paper Appendix A.5)
+agent:
+  algorithm: "PPO"
+  total_timesteps: 50000000  # 50M steps (paper)
+  buffer_size: 512
+  learning_rate: 1e-4
+  batch_size: 64
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_epsilon: 0.2
+  entropy_coef: 0.1
+  value_coef: 0.5
+  max_grad_norm: 0.5
+  n_steps: 512
+  n_epochs: 10
+  save_freq: 1000
+  # Paper's reward function (Appendix A.5)
+  reward_function: "paper_doom"  # Implemented according to Appendix A.5
+
+# Data Collection
+data_collection:
+  total_frames: 70000000  # 70M frames (paper)
+  save_frequency: 10
+  compress: true
+  record_throughout_training: true
+  # Record at different skill levels
+  record_phases:
+    - "early"    # Random policy
+    - "mid"      # Learning
+    - "late"     # Skilled
+    - "expert"   # Fully trained
+
+# Diffusion Model Settings (Paper Section 4.2)
+diffusion:
+  # Base Model
+  pretrained_model: "CompVis/stable-diffusion-v1-4"
+  resolution:
+    width: 320
+    height: 256
+  latent_channels: 4
+
+  # Context (Paper Section 5.2.1)
+  context_length: 64  # Paper uses 64
+  action_embedding_dim: 128
+
+  # Training (Paper Section 4.2)
+  batch_size: 128  # Paper's batch size (requires multi-GPU or accumulation)
+  gradient_accumulation_steps: 8  # Effective batch size 128 on single GPU
+  num_train_steps: 700000  # Paper trains for 700k steps
+  learning_rate: 2e-5
+  gradient_clip: 1.0
+
+  # Optimizer (Paper Section 4.2)
+  optimizer: "Adafactor"  # Paper uses Adafactor
+  weight_decay: 0.0
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+
+  # Noise Augmentation (Paper Section 3.2.1)
+  noise_augmentation:
+    enabled: true
+    max_noise_level: 0.7  # Paper setting
+    num_buckets: 10  # Paper setting
+
+  # Scheduler
+  lr_scheduler: "constant"
+  warmup_steps: 0  # Paper doesn't use warmup
+
+  # CFG (Paper Section 3.3.1)
+  cfg_drop_prob: 0.1  # Drop context 10% of time
+  cfg_scale: 1.5  # Paper uses small guidance
+
+  # Checkpointing
+  save_every_n_steps: 5000
+  eval_every_n_steps: 5000
+  keep_last_n_checkpoints: 10
+
+# Decoder Fine-tuning (Paper Section 3.2.2)
+decoder:
+  enabled: true
+  learning_rate: 1e-4
+  batch_size: 2048  # Paper's batch size
+  num_steps: 10000
+  # Train separately after main training
+
+# Inference Settings (Paper Section 3.3.2)
+inference:
+  num_sampling_steps: 4  # Paper uses 4 DDIM steps
+  cfg_scale: 1.5
+  add_noise_level: 0.0  # Paper suggests 0 at inference
+  fps: 20  # Paper achieves 20 FPS on TPU-v5
+  # Paper also tests with 1-step distilled model for 50 FPS
+
+# Distillation (Paper Appendix A.6 - Optional)
+distillation:
+  enabled: false  # Set to true to distill to 1-step model
+  teacher_checkpoint: "checkpoints_doom_full/best.pt"
+  num_steps: 50000
+  learning_rate: 1e-5
+  distillation_weight: 1.0
+
+# Evaluation (Paper Section 5)
+evaluation:
+  compute_metrics: true
+  metrics:
+    - "psnr"      # Paper reports PSNR 29.4
+    - "lpips"     # Paper reports LPIPS 0.249
+    - "ssim"
+    - "fvd"       # Paper uses FVD
+  num_eval_trajectories: 512  # Paper uses 512
+  eval_trajectory_length: 64   # Paper evaluates on 64 frames
+  # Human evaluation
+  human_eval:
+    enabled: false  # Can enable for final eval
+    num_clips: 130
+    clip_length_seconds: [1.6, 3.2]
+
+# Logging
+logging:
+  use_wandb: true  # Recommended for long training
+  wandb_project: "gamengen-doom-full"
+  log_interval: 100
+  save_samples: true
+  num_samples_to_save: 16
+  # Log more detailed metrics
+  log_gradients: true
+  log_learning_rate: true
+  log_memory_usage: true
+
+# Debugging
+debug:
+  enabled: false
+  overfit_single_batch: false
+  limit_train_batches: null
+  profile: false
+  # Can enable profiling to optimize training speed
+  profile_steps: [100, 200, 300]

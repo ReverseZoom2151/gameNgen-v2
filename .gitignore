@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# PyTorch
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Training Outputs
+data/recordings/
+data/recordings_doom/
+data/recordings_doom_full/
+checkpoints/
+checkpoints_doom/
+checkpoints_doom_full/
+logs/
+logs_doom/
+logs_doom_full/
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Model downloads (Stable Diffusion cache)
+models/
+.cache/
+
+# Saved videos
+*.mp4
+*.avi
+*.mov
+output/
+
+# Test outputs
+test_recordings/
+temp/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project specific
+project_structure.txt
+project_tree.txt
+
+# Keep empty directories
+!data/recordings/.gitkeep
+!checkpoints/.gitkeep
+!logs/.gitkeep
