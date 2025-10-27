@@ -57,6 +57,7 @@ logs_doom_full/
 .idea/
 *.iml
 .DS_Store
+.claude/
 
 # Jupyter
 .ipynb_checkpoints/
