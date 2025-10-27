@@ -1,6 +1,8 @@
 # GameNGen: Neural Game Engine
 
-> **A complete implementation of GameNGen - the first game engine powered entirely by a neural network**
+![DOOM Guy](./doom-guy.gif)
+
+> A complete implementation of GameNGen - the first game engine powered entirely by a neural network
 
 [![Paper](https://img.shields.io/badge/Paper-ICLR%202025-blue)](https://arxiv.org/abs/2408.14837)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
