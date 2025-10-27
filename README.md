@@ -1,6 +1,4 @@
-# GameNGen: Neural Game Engine
-
-![DOOM Guy](./doom-guy.gif)
+# ![DOOM Guy](./doom-guy.gif) GameNGen: Neural Game Engine
 
 > A complete implementation of GameNGen - the first game engine powered entirely by a neural network
 
