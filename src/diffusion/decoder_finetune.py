@@ -137,7 +137,7 @@ def finetune_decoder(config: dict):
 
 def main():
     parser = argparse.ArgumentParser(description="Fine-tune VAE decoder")
-    parser.add_argument("--config", type=str, default="config.yaml")
+    parser.add_argument("--config", type=str, default="configs/tier1_chrome_dino.yaml")
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:

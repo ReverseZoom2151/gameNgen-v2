@@ -265,7 +265,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config_tier2_doom.yaml",
+        default="configs/tier2_doom_lite.yaml",
         help="Path to config file"
     )
     parser.add_argument(

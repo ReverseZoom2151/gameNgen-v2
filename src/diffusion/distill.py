@@ -368,7 +368,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config_tier3_full_doom.yaml",
+        default="configs/tier3_full_doom.yaml",
         help="Path to config file"
     )
     parser.add_argument(

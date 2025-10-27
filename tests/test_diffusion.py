@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 
 # Add src to path
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 
 def test_action_embedding():

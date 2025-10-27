@@ -6,8 +6,8 @@ Tests Tier 1 (Chrome Dino), Tier 2 (DOOM Lite), and Tier 3 (Full DOOM)
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent))
+# Add project root to path
+sys.path.append(str(Path(__file__).parent.parent))
 
 
 def test_tier1_components():
@@ -93,7 +93,7 @@ def test_tier2_components():
     # Test config file
     try:
         import yaml
-        config_path = Path("config_tier2_doom.yaml")
+        config_path = Path("configs/tier2_doom_lite.yaml")
         if config_path.exists():
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)
@@ -174,7 +174,7 @@ def test_tier3_components():
     # Test config file
     try:
         import yaml
-        config_path = Path("config_tier3_full_doom.yaml")
+        config_path = Path("configs/tier3_full_doom.yaml")
         if config_path.exists():
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)
@@ -285,16 +285,16 @@ def main():
 
     print(f"\n[{'READY' if tier2_ready else 'PARTIAL'}] Tier 2: DOOM Lite")
     if tier2_ready:
-        print("  -> python src/agent/train_ppo_doom.py --config config_tier2_doom.yaml")
-        print("  -> python src/diffusion/train.py --config config_tier2_doom.yaml")
+        print("  -> python src/agent/train_ppo_doom.py --config configs/tier2_doom_lite.yaml")
+        print("  -> python src/diffusion/train.py --config configs/tier2_doom_lite.yaml")
     elif not tier2_results.get('vizdoom_install'):
         print("  Missing: pip install vizdoom")
 
     print(f"\n[{'READY' if tier3_ready else 'PARTIAL'}] Tier 3: Full DOOM")
     if tier3_ready:
-        print("  -> python src/agent/train_ppo_doom.py --config config_tier3_full_doom.yaml --use_paper_reward")
-        print("  -> python src/diffusion/train.py --config config_tier3_full_doom.yaml")
-        print("  -> python src/diffusion/decoder_finetune.py --config config_tier3_full_doom.yaml")
+        print("  -> python src/agent/train_ppo_doom.py --config configs/tier3_full_doom.yaml --use_paper_reward")
+        print("  -> python src/diffusion/train.py --config configs/tier3_full_doom.yaml")
+        print("  -> python src/diffusion/decoder_finetune.py --config configs/tier3_full_doom.yaml")
         print("  -> python src/diffusion/distill.py --teacher checkpoints_doom_full/latest_checkpoint.pt")
     elif not tier2_results.get('vizdoom_install'):
         print("  Missing: pip install vizdoom (required for Tier 2 first)")
@@ -311,12 +311,12 @@ def main():
     if tier2_ready:
         print("\n[OPTION 2] Jump to Tier 2 (if confident)")
         print("  Real DOOM, 1 week total")
-        print("  Command: python src/agent/train_ppo_doom.py --config config_tier2_doom.yaml")
+        print("  Command: python src/agent/train_ppo_doom.py --config configs/tier2_doom_lite.yaml")
 
     if tier3_ready:
         print("\n[OPTION 3] Full paper implementation (ambitious)")
         print("  Match paper exactly, 3-4 weeks total")
-        print("  Command: python src/agent/train_ppo_doom.py --config config_tier3_full_doom.yaml --use_paper_reward")
+        print("  Command: python src/agent/train_ppo_doom.py --config configs/tier3_full_doom.yaml --use_paper_reward")
 
     if not tier2_ready and not tier2_results.get('vizdoom_install'):
         print("\n[ACTION NEEDED] To enable Tier 2 & 3:")

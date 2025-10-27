@@ -186,7 +186,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="config.yaml",
+        default="configs/tier1_chrome_dino.yaml",
         help="Path to config file",
     )
     parser.add_argument(

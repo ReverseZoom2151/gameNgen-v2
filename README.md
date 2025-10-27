@@ -152,7 +152,7 @@ pip install diffusers stable-baselines3 gymnasium tensorboard lpips scikit-image
 pip install vizdoom
 
 # Verify installation
-python test_all_tiers.py
+python tests/test_all_tiers.py
 ```
 
 ### Expected Output
@@ -191,17 +191,17 @@ python src/diffusion/inference.py \
 
 ```bash
 # Step 1: Train RL agent with PPO (1-2 days)
-python src/agent/train_ppo_doom.py --config config_tier2_doom.yaml
+python src/agent/train_ppo_doom.py --config configs/tier2_doom_lite.yaml
 
 # Step 2: Train diffusion model (3-5 days)
-python src/diffusion/train.py --config config_tier2_doom.yaml --steps 50000
+python src/diffusion/train.py --config configs/tier2_doom_lite.yaml --steps 50000
 
 # Step 3: Optional - Fine-tune decoder for better quality
-python src/diffusion/decoder_finetune.py --config config_tier2_doom.yaml
+python src/diffusion/decoder_finetune.py --config configs/tier2_doom_lite.yaml
 
 # Step 4: Play DOOM!
 python src/diffusion/inference.py \
-    --config config_tier2_doom.yaml \
+    --config configs/tier2_doom_lite.yaml \
     --checkpoint checkpoints_doom/latest_checkpoint.pt \
     --mode interactive \
     --save_video my_neural_doom.mp4
@@ -214,33 +214,33 @@ python src/diffusion/inference.py \
 ```bash
 # Phase 1: Train RL agent (4-7 days, 50M timesteps)
 python src/agent/train_ppo_doom.py \
-    --config config_tier3_full_doom.yaml \
+    --config configs/tier3_full_doom.yaml \
     --use_paper_reward \
     --timesteps 50000000
 
 # Phase 2: Train diffusion model (14-21 days, 700k steps)
 python src/diffusion/train.py \
-    --config config_tier3_full_doom.yaml \
+    --config configs/tier3_full_doom.yaml \
     --steps 700000
 
 # Phase 3: Fine-tune decoder (1-2 days)
-python src/diffusion/decoder_finetune.py --config config_tier3_full_doom.yaml
+python src/diffusion/decoder_finetune.py --config configs/tier3_full_doom.yaml
 
 # Phase 4: Distill to 1-step for 50 FPS (2-3 days)
 python src/diffusion/distill.py \
-    --config config_tier3_full_doom.yaml \
+    --config configs/tier3_full_doom.yaml \
     --teacher checkpoints_doom_full/latest_checkpoint.pt
 
 # Phase 5: Evaluate (compare to paper results)
 python src/diffusion/inference.py \
-    --config config_tier3_full_doom.yaml \
+    --config configs/tier3_full_doom.yaml \
     --checkpoint checkpoints_doom_full/latest_checkpoint.pt \
     --mode evaluate \
     --num_trajectories 512
 
 # Phase 6: Play at 50 FPS!
 python src/diffusion/inference.py \
-    --config config_tier3_full_doom.yaml \
+    --config configs/tier3_full_doom.yaml \
     --checkpoint checkpoints_doom_full/distilled/distilled_final.pt \
     --mode interactive
 ```
@@ -313,7 +313,7 @@ Phase 3: Real-Time Inference
 
 All settings are configurable via YAML files:
 
-### Tier 1 Configuration (config.yaml)
+### Tier 1 Configuration
 
 ```yaml
 # Quick validation setup
@@ -331,7 +331,7 @@ diffusion:
   batch_size: 32
 ```
 
-### Tier 2 Configuration (config_tier2_doom.yaml)
+### Tier 2 Configuration
 
 ```yaml
 # Production DOOM setup
@@ -349,7 +349,7 @@ diffusion:
   batch_size: 16
 ```
 
-### Tier 3 Configuration (config_tier3_full_doom.yaml)
+### Tier 3 Configuration
 
 ```yaml
 # Full paper implementation
@@ -395,13 +395,29 @@ gameNgen-v2/
 │       ├── data_recorder.py      # Record gameplay
 │       └── evaluation.py         # Metrics
 │
-├── config.yaml                   # Tier 1 config
-├── config_tier2_doom.yaml        # Tier 2 config
-├── config_tier3_full_doom.yaml   # Tier 3 config
+├── configs/                      # Configuration files
+│   ├── tier1_chrome_dino.yaml    # Tier 1 config
+│   ├── tier2_doom_lite.yaml      # Tier 2 config
+│   └── tier3_full_doom.yaml      # Tier 3 config
 │
-├── test_all_tiers.py             # Test suite
+├── tests/                        # Test suites
+│   ├── test_all_tiers.py         # Test all 3 tiers
+│   ├── test_diffusion_simple.py  # Test diffusion
+│   └── quick_test_simple.py      # Quick installation test
+│
+├── paper/                        # Research paper
+│   └── GameNGen_ICLR2025.pdf     # Original paper
+│
+├── data/                         # Training data (generated)
+├── checkpoints/                  # Model checkpoints (generated)
+├── logs/                         # Training logs (generated)
+│
+├── README.md                     # This file
+├── LICENSE                       # MIT License
 ├── requirements.txt              # Dependencies
-└── README.md                     # This file
+├── setup.py                      # Package setup
+├── doom-guy.gif                  # README asset
+└── .gitignore                    # Git ignore rules
 ```
 
 ---
@@ -474,10 +490,10 @@ gameNgen-v2/
 
 ```bash
 # Test core diffusion components
-python test_diffusion_simple.py
+python tests/test_diffusion_simple.py
 
 # Test all 3 tiers
-python test_all_tiers.py
+python tests/test_all_tiers.py
 
 # Test specific components
 python -m src.diffusion.model  # Test model creation
@@ -785,7 +801,7 @@ git clone https://github.com/ReverseZoom2151/gameNgen-v2.git
 cd gameNgen-v2
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
 pip install -r requirements.txt
-python test_all_tiers.py
+python tests/test_all_tiers.py
 python src/agent/train_dqn.py
 ```
 
