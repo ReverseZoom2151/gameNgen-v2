@@ -3,10 +3,11 @@ Multi-Scenario Training Support for DOOM
 Paper Tier 3 uses multiple DOOM scenarios for diversity
 """
 
-import gymnasium as gym
-from typing import List, Optional
 import random
 from pathlib import Path
+from typing import List, Optional
+
+import gymnasium as gym
 
 
 class MultiScenarioViZDoomEnv(gym.Env):
@@ -42,7 +43,7 @@ class MultiScenarioViZDoomEnv(gym.Env):
         height: int = 256,
         frame_skip: int = 4,
         use_paper_reward: bool = False,
-        **kwargs
+        **kwargs,
     ):
         """
         Args:
@@ -83,7 +84,7 @@ class MultiScenarioViZDoomEnv(gym.Env):
             height=height,
             frame_skip=frame_skip,
             use_paper_reward=use_paper_reward,
-            **kwargs
+            **kwargs,
         )
 
         # Use same spaces as underlying environment
@@ -105,13 +106,13 @@ class MultiScenarioViZDoomEnv(gym.Env):
         if self.scenario_weights:
             # Weighted random selection
             self.current_scenario_idx = random.choices(
-                range(len(self.scenarios)),
-                weights=self.scenario_weights,
-                k=1
+                range(len(self.scenarios)), weights=self.scenario_weights, k=1
             )[0]
         else:
             # Cycle through scenarios
-            self.current_scenario_idx = (self.current_scenario_idx + 1) % len(self.scenarios)
+            self.current_scenario_idx = (self.current_scenario_idx + 1) % len(
+                self.scenarios
+            )
 
         return self.scenarios[self.current_scenario_idx]
 
@@ -160,9 +161,7 @@ class MultiScenarioViZDoomEnv(gym.Env):
 
 
 def create_multi_scenario_env(
-    num_envs: int = 1,
-    scenarios: Optional[List[str]] = None,
-    **kwargs
+    num_envs: int = 1, scenarios: Optional[List[str]] = None, **kwargs
 ) -> gym.Env:
     """
     Factory function to create multi-scenario environment(s)
@@ -185,6 +184,7 @@ def create_multi_scenario_env(
         def make_env(rank):
             def _init():
                 return MultiScenarioViZDoomEnv(scenarios=scenarios, **kwargs)
+
             return _init
 
         return SubprocVecEnv([make_env(i) for i in range(num_envs)])
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     try:
         env = MultiScenarioViZDoomEnv(
             scenarios=["basic.cfg", "deadly_corridor.cfg"],
-            change_scenario_every_n_episodes=2
+            change_scenario_every_n_episodes=2,
         )
 
         print("Environment created!")
@@ -225,4 +225,5 @@ if __name__ == "__main__":
         print(f"Test failed: {e}")
         print("Note: Requires ViZDoom installation")
         import traceback
+
         traceback.print_exc()

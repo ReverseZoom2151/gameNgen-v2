@@ -4,16 +4,17 @@ Auto-regressive generation of gameplay
 """
 
 import argparse
-import yaml
-import torch
-import numpy as np
-from pathlib import Path
 import sys
 import time
-import cv2
 from collections import deque
-from typing import Optional, List
+from pathlib import Path
+from typing import List, Optional
+
+import cv2
 import imageio
+import numpy as np
+import torch
+import yaml
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -107,7 +108,9 @@ class GameNGenPlayer:
 
         context_actions = torch.tensor(
             list(self.action_buffer), dtype=torch.long
-        ).unsqueeze(0)  # (1, T)
+        ).unsqueeze(
+            0
+        )  # (1, T)
 
         # Move to device
         context_frames = context_frames.to(self.model.device)
@@ -157,24 +160,24 @@ def play_interactive(
         config: Configuration dict
         save_video: Optional path to save video
     """
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("GameNGen - Interactive Gameplay")
-    print("="*60)
+    print("=" * 60)
 
     # Create environment for initial frames
     print("Initializing environment...")
     env = SimpleDinoEnv(
-        width=config['environment']['resolution']['width'],
-        height=config['environment']['resolution']['height']
+        width=config["environment"]["resolution"]["width"],
+        height=config["environment"]["resolution"]["height"],
     )
 
     # Create player
     player = GameNGenPlayer(
         model=model,
-        context_length=config['diffusion']['context_length'],
-        num_inference_steps=config['inference']['num_sampling_steps'],
-        guidance_scale=config['inference']['cfg_scale'],
-        target_fps=config['inference']['fps'],
+        context_length=config["diffusion"]["context_length"],
+        num_inference_steps=config["inference"]["num_sampling_steps"],
+        guidance_scale=config["inference"]["cfg_scale"],
+        target_fps=config["inference"]["fps"],
     )
 
     # Collect initial context from real environment
@@ -184,7 +187,7 @@ def play_interactive(
     initial_frames = []
     initial_actions = []
 
-    for i in range(config['diffusion']['context_length']):
+    for i in range(config["diffusion"]["context_length"]):
         action = env.action_space.sample()  # Random initial actions
         next_obs, reward, done, truncated, info = env.step(action)
 
@@ -204,7 +207,7 @@ def play_interactive(
     print("  SPACE: Jump")
     print("  DOWN: Duck")
     print("  Q: Quit")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Setup video recording
     frames_recorded = []
@@ -235,7 +238,7 @@ def play_interactive(
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1,
                 (0, 255, 0),
-                2
+                2,
             )
 
             # Add frame counter
@@ -246,18 +249,18 @@ def play_interactive(
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1,
                 (0, 255, 0),
-                2
+                2,
             )
 
             # Show frame
-            cv2.imshow('GameNGen', display_frame)
+            cv2.imshow("GameNGen", display_frame)
 
             # Handle input
             key = cv2.waitKey(1) & 0xFF
 
-            if key == ord('q'):
+            if key == ord("q"):
                 break
-            elif key == ord(' '):
+            elif key == ord(" "):
                 action = 1  # Jump
             elif key == 82:  # Up arrow
                 action = 1  # Jump
@@ -284,16 +287,12 @@ def play_interactive(
     # Save video
     if save_video and len(frames_recorded) > 0:
         print(f"\nSaving video to {save_video}...")
-        imageio.mimsave(
-            save_video,
-            frames_recorded,
-            fps=config['inference']['fps']
-        )
+        imageio.mimsave(save_video, frames_recorded, fps=config["inference"]["fps"])
         print(f"✓ Video saved ({len(frames_recorded)} frames)")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Gameplay session ended")
-    print("="*60)
+    print("=" * 60)
 
 
 def evaluate_on_dataset(
@@ -311,18 +310,18 @@ def evaluate_on_dataset(
     """
     from src.diffusion.dataset import create_dataloader
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("GameNGen - Evaluation Mode")
-    print("="*60)
+    print("=" * 60)
 
     # Create dataloader
     dataloader = create_dataloader(
-        data_dir=config['data_dir'],
+        data_dir=config["data_dir"],
         batch_size=1,
-        context_length=config['diffusion']['context_length'],
+        context_length=config["diffusion"]["context_length"],
         resolution=(
-            config['environment']['resolution']['height'],
-            config['environment']['resolution']['width']
+            config["environment"]["resolution"]["height"],
+            config["environment"]["resolution"]["width"],
         ),
         num_workers=0,
         shuffle=True,
@@ -339,9 +338,9 @@ def evaluate_on_dataset(
         if i >= num_trajectories:
             break
 
-        context_frames = batch['context_frames'].to(model.device)
-        context_actions = batch['context_actions'].to(model.device)
-        target_frame = batch['target_frame'].to(model.device)
+        context_frames = batch["context_frames"].to(model.device)
+        context_actions = batch["context_actions"].to(model.device)
+        target_frame = batch["target_frame"].to(model.device)
 
         # Generate
         start_time = time.time()
@@ -349,30 +348,32 @@ def evaluate_on_dataset(
             generated = model.generate(
                 context_frames,
                 context_actions,
-                num_inference_steps=config['inference']['num_sampling_steps'],
-                guidance_scale=config['inference']['cfg_scale'],
+                num_inference_steps=config["inference"]["num_sampling_steps"],
+                guidance_scale=config["inference"]["cfg_scale"],
             )
         elapsed = time.time() - start_time
 
         # Compute PSNR
         mse = torch.mean((generated - target_frame) ** 2).item()
-        psnr = 20 * np.log10(255.0) - 10 * np.log10(mse) if mse > 0 else float('inf')
+        psnr = 20 * np.log10(255.0) - 10 * np.log10(mse) if mse > 0 else float("inf")
 
         total_psnr += psnr
         total_time += elapsed
 
-        print(f"Trajectory {i+1}/{num_trajectories} | PSNR: {psnr:.2f} | Time: {elapsed*1000:.1f}ms")
+        print(
+            f"Trajectory {i+1}/{num_trajectories} | PSNR: {psnr:.2f} | Time: {elapsed*1000:.1f}ms"
+        )
 
     avg_psnr = total_psnr / num_trajectories
     avg_time = total_time / num_trajectories
     avg_fps = 1.0 / avg_time
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Evaluation Results:")
     print(f"  Average PSNR: {avg_psnr:.2f} dB")
     print(f"  Average time per frame: {avg_time*1000:.1f} ms")
     print(f"  Average FPS: {avg_fps:.1f}")
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
@@ -381,51 +382,48 @@ def main():
         "--config",
         type=str,
         default="configs/tier1_chrome_dino.yaml",
-        help="Path to config file"
+        help="Path to config file",
     )
     parser.add_argument(
-        "--checkpoint",
-        type=str,
-        required=True,
-        help="Path to trained checkpoint"
+        "--checkpoint", type=str, required=True, help="Path to trained checkpoint"
     )
     parser.add_argument(
         "--mode",
         type=str,
         default="interactive",
         choices=["interactive", "evaluate"],
-        help="Inference mode"
+        help="Inference mode",
     )
     parser.add_argument(
         "--save_video",
         type=str,
         default=None,
-        help="Path to save video (interactive mode)"
+        help="Path to save video (interactive mode)",
     )
     parser.add_argument(
         "--num_trajectories",
         type=int,
         default=10,
-        help="Number of trajectories (evaluate mode)"
+        help="Number of trajectories (evaluate mode)",
     )
 
     args = parser.parse_args()
 
     # Load config
-    with open(args.config, 'r') as f:
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
     # Create model
-    device = config.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
+    device = config.get("device", "cuda" if torch.cuda.is_available() else "cpu")
 
     print("Loading model...")
     model = ActionConditionedDiffusionModel(
-        pretrained_model_name=config['diffusion']['pretrained_model'],
-        num_actions=config['environment'].get('num_actions', 3),
-        action_embedding_dim=config['diffusion']['action_embedding_dim'],
-        context_length=config['diffusion']['context_length'],
-        num_noise_buckets=config['diffusion']['noise_augmentation']['num_buckets'],
-        max_noise_level=config['diffusion']['noise_augmentation']['max_noise_level'],
+        pretrained_model_name=config["diffusion"]["pretrained_model"],
+        num_actions=config["environment"].get("num_actions", 3),
+        action_embedding_dim=config["diffusion"]["action_embedding_dim"],
+        context_length=config["diffusion"]["context_length"],
+        num_noise_buckets=config["diffusion"]["noise_augmentation"]["num_buckets"],
+        max_noise_level=config["diffusion"]["noise_augmentation"]["max_noise_level"],
         device=device,
         dtype=torch.float32,  # Use float32 for inference
     )
@@ -434,10 +432,10 @@ def main():
     print(f"Loading checkpoint from {args.checkpoint}")
     checkpoint = torch.load(args.checkpoint, map_location=device)
 
-    model.unet.load_state_dict(checkpoint['unet'])
-    model.action_embedding.load_state_dict(checkpoint['action_embedding'])
-    model.noise_aug_embedding.load_state_dict(checkpoint['noise_aug_embedding'])
-    model.action_proj.load_state_dict(checkpoint['action_proj'])
+    model.unet.load_state_dict(checkpoint["unet"])
+    model.action_embedding.load_state_dict(checkpoint["action_embedding"])
+    model.noise_aug_embedding.load_state_dict(checkpoint["noise_aug_embedding"])
+    model.action_proj.load_state_dict(checkpoint["action_proj"])
 
     model.eval()
 

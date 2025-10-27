@@ -1,7 +1,8 @@
 """Diffusion model module for GameNGen"""
 
-from .model import ActionConditionedDiffusionModel, ActionEmbedding, NoiseAugmentationEmbedding
 from .dataset import GameplayDataset, create_dataloader
+from .model import (ActionConditionedDiffusionModel, ActionEmbedding,
+                    NoiseAugmentationEmbedding)
 from .optimizers import Adafactor, create_optimizer
 
 __all__ = [

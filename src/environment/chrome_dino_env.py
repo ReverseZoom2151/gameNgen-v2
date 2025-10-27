@@ -3,18 +3,19 @@ Chrome Dino Game Environment for GameNGen
 Implements a Gymnasium-compatible wrapper for Chrome Dino game
 """
 
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-import cv2
-from typing import Tuple, Dict, Any, Optional
+import io
 import time
+from typing import Any, Dict, Optional, Tuple
+
+import cv2
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from PIL import Image
-import io
+from selenium.webdriver.common.keys import Keys
 
 
 class ChromeDinoEnv(gym.Env):
@@ -131,9 +132,7 @@ class ChromeDinoEnv(gym.Env):
             print(f"Error sending action: {e}")
 
     def reset(
-        self,
-        seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """Reset environment to initial state"""
         super().reset(seed=seed)
@@ -256,7 +255,9 @@ class SimpleDinoEnv(gym.Env):
         self.game_over = False
         self.frame_count = 0
 
-        print("Warning: SimpleDinoEnv is a placeholder. Use ChromeDinoEnv for actual game.")
+        print(
+            "Warning: SimpleDinoEnv is a placeholder. Use ChromeDinoEnv for actual game."
+        )
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)

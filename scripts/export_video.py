@@ -4,18 +4,19 @@ Generate and export multiple gameplay videos for demonstration
 """
 
 import argparse
-from pathlib import Path
 import sys
-import torch
-import yaml
+from pathlib import Path
+
 import imageio
 import numpy as np
+import torch
+import yaml
 from tqdm import tqdm
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.diffusion.model import ActionConditionedDiffusionModel
 from src.diffusion.dataset import create_dataloader
+from src.diffusion.model import ActionConditionedDiffusionModel
 
 
 def export_single_trajectory(
@@ -52,7 +53,7 @@ def export_single_trajectory(
                 context_frames,
                 context_actions,
                 num_inference_steps=4,
-                guidance_scale=1.5
+                guidance_scale=1.5,
             )
 
         # Convert to numpy (H, W, C)
@@ -62,20 +63,22 @@ def export_single_trajectory(
         generated_frames.append(frame_np)
 
         # Update context
-        context_frames = torch.cat([
-            context_frames[:, 1:],  # Remove oldest
-            generated_frame.unsqueeze(1)  # Add newest
-        ], dim=1)
+        context_frames = torch.cat(
+            [
+                context_frames[:, 1:],  # Remove oldest
+                generated_frame.unsqueeze(1),  # Add newest
+            ],
+            dim=1,
+        )
 
         action_tensor = torch.tensor([[action]], device=model.device)
-        context_actions = torch.cat([
-            context_actions[:, 1:],
-            action_tensor
-        ], dim=1)
+        context_actions = torch.cat([context_actions[:, 1:], action_tensor], dim=1)
 
     # Save as video
     imageio.mimsave(output_path, generated_frames, fps=fps)
-    print(f"\n✓ Saved video to {output_path} ({len(generated_frames)} frames @ {fps} FPS)")
+    print(
+        f"\n✓ Saved video to {output_path} ({len(generated_frames)} frames @ {fps} FPS)"
+    )
 
 
 def batch_export_videos(
@@ -99,15 +102,15 @@ def batch_export_videos(
         output_dir: Output directory
         fps: Frames per second
     """
-    print("="*60)
+    print("=" * 60)
     print("Batch Video Export")
-    print("="*60)
+    print("=" * 60)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load config
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -115,19 +118,19 @@ def batch_export_videos(
     # Load model
     print(f"\nLoading model from {checkpoint_path}...")
     model = ActionConditionedDiffusionModel(
-        pretrained_model_name=config['diffusion']['pretrained_model'],
-        num_actions=config['environment'].get('num_actions', 3),
-        action_embedding_dim=config['diffusion']['action_embedding_dim'],
-        context_length=config['diffusion']['context_length'],
+        pretrained_model_name=config["diffusion"]["pretrained_model"],
+        num_actions=config["environment"].get("num_actions", 3),
+        action_embedding_dim=config["diffusion"]["action_embedding_dim"],
+        context_length=config["diffusion"]["context_length"],
         device=device,
         dtype=torch.float32,
     )
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.unet.load_state_dict(checkpoint['unet'])
-    model.action_embedding.load_state_dict(checkpoint['action_embedding'])
-    model.noise_aug_embedding.load_state_dict(checkpoint['noise_aug_embedding'])
-    model.action_proj.load_state_dict(checkpoint['action_proj'])
+    model.unet.load_state_dict(checkpoint["unet"])
+    model.action_embedding.load_state_dict(checkpoint["action_embedding"])
+    model.noise_aug_embedding.load_state_dict(checkpoint["noise_aug_embedding"])
+    model.action_proj.load_state_dict(checkpoint["action_proj"])
 
     model.eval()
     print("✓ Model loaded")
@@ -136,10 +139,10 @@ def batch_export_videos(
     dataloader = create_dataloader(
         data_dir=data_dir,
         batch_size=1,
-        context_length=config['diffusion']['context_length'],
+        context_length=config["diffusion"]["context_length"],
         resolution=(
-            config['environment']['resolution']['height'],
-            config['environment']['resolution']['width']
+            config["environment"]["resolution"]["height"],
+            config["environment"]["resolution"]["width"],
         ),
         num_workers=0,
         shuffle=True,
@@ -155,12 +158,12 @@ def batch_export_videos(
 
         print(f"\nVideo {video_idx + 1}/{num_videos}")
 
-        context_frames = batch['context_frames'].to(device)
-        context_actions = batch['context_actions'].to(device)
+        context_frames = batch["context_frames"].to(device)
+        context_actions = batch["context_actions"].to(device)
 
         # Generate random or sampled actions for the rest of the video
         # For demo, we'll sample random actions
-        num_actions = config['environment'].get('num_actions', 3)
+        num_actions = config["environment"].get("num_actions", 3)
         actions_sequence = np.random.randint(0, num_actions, video_length_frames)
 
         # Export
@@ -172,58 +175,38 @@ def batch_export_videos(
             context_actions,
             actions_sequence,
             str(output_path),
-            fps=fps
+            fps=fps,
         )
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"✓ Exported {num_videos} videos to {output_dir}")
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Batch export gameplay videos")
     parser.add_argument(
-        "--checkpoint",
-        type=str,
-        required=True,
-        help="Model checkpoint to use"
+        "--checkpoint", type=str, required=True, help="Model checkpoint to use"
     )
     parser.add_argument(
         "--config",
         type=str,
         default="configs/tier1_chrome_dino.yaml",
-        help="Config file"
+        help="Config file",
     )
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        default="data/recordings",
-        help="Data directory"
+        "--data-dir", type=str, default="data/recordings", help="Data directory"
     )
     parser.add_argument(
-        "--num-videos",
-        type=int,
-        default=10,
-        help="Number of videos to export"
+        "--num-videos", type=int, default=10, help="Number of videos to export"
     )
     parser.add_argument(
-        "--length",
-        type=int,
-        default=300,
-        help="Length of each video (frames)"
+        "--length", type=int, default=300, help="Length of each video (frames)"
     )
     parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="exported_videos",
-        help="Output directory"
+        "--output-dir", type=str, default="exported_videos", help="Output directory"
     )
-    parser.add_argument(
-        "--fps",
-        type=int,
-        default=20,
-        help="Frames per second"
-    )
+    parser.add_argument("--fps", type=int, default=20, help="Frames per second")
 
     args = parser.parse_args()
 
@@ -234,7 +217,7 @@ def main():
         args.num_videos,
         args.length,
         args.output_dir,
-        args.fps
+        args.fps,
     )
 
 

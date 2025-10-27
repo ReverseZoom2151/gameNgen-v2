@@ -7,19 +7,20 @@ in the single-step setting. Distillation does help substantially..."
 """
 
 import argparse
-import yaml
+import sys
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from pathlib import Path
-import sys
-from tqdm import tqdm
+import yaml
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.diffusion.model import ActionConditionedDiffusionModel
 from src.diffusion.dataset import create_dataloader
+from src.diffusion.model import ActionConditionedDiffusionModel
 
 
 class DistillationTrainer:
@@ -40,9 +41,9 @@ class DistillationTrainer:
         self.config = config
         self.device = device
 
-        print("="*60)
+        print("=" * 60)
         print("Model Distillation for 1-Step Inference")
-        print("="*60)
+        print("=" * 60)
 
         # Create three models
         print("\nCreating models...")
@@ -74,16 +75,14 @@ class DistillationTrainer:
         print("  ✓ Fake-score model initialized")
 
         # Optimizers
-        distill_config = config['distillation']
+        distill_config = config["distillation"]
 
         self.generator_optimizer = optim.Adam(
-            self.generator.parameters(),
-            lr=distill_config['learning_rate']
+            self.generator.parameters(), lr=distill_config["learning_rate"]
         )
 
         self.fake_score_optimizer = optim.Adam(
-            self.fake_score_model.parameters(),
-            lr=distill_config['learning_rate']
+            self.fake_score_model.parameters(), lr=distill_config["learning_rate"]
         )
 
         print("  ✓ Optimizers created")
@@ -91,12 +90,16 @@ class DistillationTrainer:
     def _create_model(self):
         """Create a model instance"""
         return ActionConditionedDiffusionModel(
-            pretrained_model_name=self.config['diffusion']['pretrained_model'],
-            num_actions=self.config['environment'].get('num_actions', 3),
-            action_embedding_dim=self.config['diffusion']['action_embedding_dim'],
-            context_length=self.config['diffusion']['context_length'],
-            num_noise_buckets=self.config['diffusion']['noise_augmentation']['num_buckets'],
-            max_noise_level=self.config['diffusion']['noise_augmentation']['max_noise_level'],
+            pretrained_model_name=self.config["diffusion"]["pretrained_model"],
+            num_actions=self.config["environment"].get("num_actions", 3),
+            action_embedding_dim=self.config["diffusion"]["action_embedding_dim"],
+            context_length=self.config["diffusion"]["context_length"],
+            num_noise_buckets=self.config["diffusion"]["noise_augmentation"][
+                "num_buckets"
+            ],
+            max_noise_level=self.config["diffusion"]["noise_augmentation"][
+                "max_noise_level"
+            ],
             device=self.device,
             dtype=torch.float32,
         )
@@ -105,10 +108,10 @@ class DistillationTrainer:
         """Load checkpoint into model"""
         checkpoint = torch.load(checkpoint_path, map_location=self.device)
 
-        model.unet.load_state_dict(checkpoint['unet'])
-        model.action_embedding.load_state_dict(checkpoint['action_embedding'])
-        model.noise_aug_embedding.load_state_dict(checkpoint['noise_aug_embedding'])
-        model.action_proj.load_state_dict(checkpoint['action_proj'])
+        model.unet.load_state_dict(checkpoint["unet"])
+        model.action_embedding.load_state_dict(checkpoint["action_embedding"])
+        model.noise_aug_embedding.load_state_dict(checkpoint["noise_aug_embedding"])
+        model.action_proj.load_state_dict(checkpoint["action_proj"])
 
     @torch.no_grad()
     def get_teacher_prediction(
@@ -155,9 +158,9 @@ class DistillationTrainer:
         batch_size = context_latents.shape[0]
         context_flat = context_latents.reshape(
             batch_size,
-            self.config['diffusion']['context_length'] * context_latents.shape[2],
+            self.config["diffusion"]["context_length"] * context_latents.shape[2],
             context_latents.shape[3],
-            context_latents.shape[4]
+            context_latents.shape[4],
         )
 
         # Embed actions
@@ -175,9 +178,7 @@ class DistillationTrainer:
 
         # U-Net prediction
         predicted_latents = self.generator.unet(
-            unet_input,
-            timestep,
-            encoder_hidden_states=encoder_hidden_states
+            unet_input, timestep, encoder_hidden_states=encoder_hidden_states
         ).sample
 
         return predicted_latents
@@ -192,9 +193,9 @@ class DistillationTrainer:
         We optimize the weights of the generator to minimize the generator
         gradient value at each pixel weighted by ε_real − ε_fake."
         """
-        target_frame = batch['target_frame'].to(self.device)
-        context_frames = batch['context_frames'].to(self.device)
-        context_actions = batch['context_actions'].to(self.device)
+        target_frame = batch["target_frame"].to(self.device)
+        context_frames = batch["context_frames"].to(self.device)
+        context_actions = batch["context_actions"].to(self.device)
 
         # Encode target to latents
         target_latents = self.teacher.encode_frames(target_frame)
@@ -253,21 +254,24 @@ class DistillationTrainer:
         self.generator_optimizer.step()
 
         return {
-            'generator_loss': generator_loss.item(),
-            'fake_score_loss': fake_score_loss.item(),
+            "generator_loss": generator_loss.item(),
+            "fake_score_loss": fake_score_loss.item(),
         }
 
     def save_generator(self, save_path: str):
         """Save distilled generator"""
-        torch.save({
-            'unet': self.generator.unet.state_dict(),
-            'action_embedding': self.generator.action_embedding.state_dict(),
-            'noise_aug_embedding': self.generator.noise_aug_embedding.state_dict(),
-            'action_proj': self.generator.action_proj.state_dict(),
-            'config': self.config,
-            'distilled': True,
-            'num_inference_steps': 1,
-        }, save_path)
+        torch.save(
+            {
+                "unet": self.generator.unet.state_dict(),
+                "action_embedding": self.generator.action_embedding.state_dict(),
+                "noise_aug_embedding": self.generator.noise_aug_embedding.state_dict(),
+                "action_proj": self.generator.action_proj.state_dict(),
+                "config": self.config,
+                "distilled": True,
+                "num_inference_steps": 1,
+            },
+            save_path,
+        )
 
         print(f"Distilled model saved to {save_path}")
 
@@ -275,12 +279,12 @@ class DistillationTrainer:
 def distill_model(config: dict):
     """Main distillation training loop"""
 
-    device = config.get('device', 'cuda')
-    distill_config = config['distillation']
+    device = config.get("device", "cuda")
+    distill_config = config["distillation"]
 
     # Create trainer
     trainer = DistillationTrainer(
-        teacher_checkpoint=distill_config['teacher_checkpoint'],
+        teacher_checkpoint=distill_config["teacher_checkpoint"],
         config=config,
         device=device,
     )
@@ -289,35 +293,35 @@ def distill_model(config: dict):
     print("\nCreating dataloader...")
 
     dataloader = create_dataloader(
-        data_dir=config['data_dir'],
+        data_dir=config["data_dir"],
         batch_size=32,
-        context_length=config['diffusion']['context_length'],
+        context_length=config["diffusion"]["context_length"],
         resolution=(
-            config['environment']['resolution']['height'],
-            config['environment']['resolution']['width']
+            config["environment"]["resolution"]["height"],
+            config["environment"]["resolution"]["width"],
         ),
-        num_workers=config.get('num_workers', 4),
+        num_workers=config.get("num_workers", 4),
         shuffle=True,
     )
 
     print(f"Dataloader created: {len(dataloader)} batches")
 
     # Training loop
-    num_steps = distill_config['num_steps']
+    num_steps = distill_config["num_steps"]
     save_freq = 1000
 
-    output_dir = Path(config['checkpoint_dir']) / "distilled"
+    output_dir = Path(config["checkpoint_dir"]) / "distilled"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    log_dir = Path(config['log_dir']) / "distillation"
+    log_dir = Path(config["log_dir"]) / "distillation"
     log_dir.mkdir(parents=True, exist_ok=True)
 
     writer = SummaryWriter(log_dir)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"Starting distillation training")
     print(f"Steps: {num_steps}")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     dataloader_iter = iter(dataloader)
     pbar = tqdm(total=num_steps, desc="Distillation")
@@ -333,15 +337,19 @@ def distill_model(config: dict):
         losses = trainer.distillation_step(batch)
 
         pbar.update(1)
-        pbar.set_postfix({
-            'gen_loss': f"{losses['generator_loss']:.4f}",
-            'fake_loss': f"{losses['fake_score_loss']:.4f}",
-        })
+        pbar.set_postfix(
+            {
+                "gen_loss": f"{losses['generator_loss']:.4f}",
+                "fake_loss": f"{losses['fake_score_loss']:.4f}",
+            }
+        )
 
         # Logging
         if step % 10 == 0:
-            writer.add_scalar('distill/generator_loss', losses['generator_loss'], step)
-            writer.add_scalar('distill/fake_score_loss', losses['fake_score_loss'], step)
+            writer.add_scalar("distill/generator_loss", losses["generator_loss"], step)
+            writer.add_scalar(
+                "distill/fake_score_loss", losses["fake_score_loss"], step
+            )
 
         # Save checkpoint
         if (step + 1) % save_freq == 0 or step == num_steps - 1:
@@ -356,11 +364,11 @@ def distill_model(config: dict):
     final_path = output_dir / "distilled_final.pt"
     trainer.save_generator(final_path)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Distillation complete!")
     print(f"Final model: {final_path}")
     print("This model can run at 1-step (50 FPS vs 20 FPS)")
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
@@ -369,42 +377,36 @@ def main():
         "--config",
         type=str,
         default="configs/tier3_full_doom.yaml",
-        help="Path to config file"
+        help="Path to config file",
     )
     parser.add_argument(
-        "--teacher",
-        type=str,
-        required=True,
-        help="Path to trained teacher checkpoint"
+        "--teacher", type=str, required=True, help="Path to trained teacher checkpoint"
     )
     parser.add_argument(
-        "--steps",
-        type=int,
-        default=None,
-        help="Override number of distillation steps"
+        "--steps", type=int, default=None, help="Override number of distillation steps"
     )
 
     args = parser.parse_args()
 
     # Load config
-    with open(args.config, 'r') as f:
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
     # Set teacher checkpoint
-    if 'distillation' not in config:
-        config['distillation'] = {}
+    if "distillation" not in config:
+        config["distillation"] = {}
 
-    config['distillation']['teacher_checkpoint'] = args.teacher
+    config["distillation"]["teacher_checkpoint"] = args.teacher
 
     if args.steps:
-        config['distillation']['num_steps'] = args.steps
+        config["distillation"]["num_steps"] = args.steps
 
     # Set default values if not in config
-    if 'num_steps' not in config['distillation']:
-        config['distillation']['num_steps'] = 50000
+    if "num_steps" not in config["distillation"]:
+        config["distillation"]["num_steps"] = 50000
 
-    if 'learning_rate' not in config['distillation']:
-        config['distillation']['learning_rate'] = 1e-5
+    if "learning_rate" not in config["distillation"]:
+        config["distillation"]["learning_rate"] = 1e-5
 
     # Distill
     distill_model(config)

@@ -4,11 +4,12 @@ Proper implementation using I3D (Inflated 3D ConvNet) for feature extraction
 Based on paper Section 5.1: "We measure the FVD"
 """
 
+import warnings
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
 from scipy.linalg import sqrtm
-import warnings
 
 
 class I3D(nn.Module):
@@ -27,11 +28,15 @@ class I3D(nn.Module):
         # Simplified I3D architecture
         # In practice, load pretrained I3D weights
         self.conv3d_1a = nn.Conv3d(in_channels, 64, kernel_size=7, stride=2, padding=3)
-        self.maxpool3d_2a = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
+        self.maxpool3d_2a = nn.MaxPool3d(
+            kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1)
+        )
 
         self.conv3d_2b = nn.Conv3d(64, 64, kernel_size=1)
         self.conv3d_2c = nn.Conv3d(64, 192, kernel_size=3, padding=1)
-        self.maxpool3d_3a = nn.MaxPool3d(kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1))
+        self.maxpool3d_3a = nn.MaxPool3d(
+            kernel_size=(1, 3, 3), stride=(1, 2, 2), padding=(0, 1, 1)
+        )
 
         # More layers would be here in full implementation
 
@@ -75,11 +80,7 @@ class FVDCalculator:
     using features from I3D network pretrained on Kinetics.
     """
 
-    def __init__(
-        self,
-        device: str = "cuda",
-        use_pretrained: bool = True
-    ):
+    def __init__(self, device: str = "cuda", use_pretrained: bool = True):
         """
         Args:
             device: Device for computation
@@ -90,6 +91,7 @@ class FVDCalculator:
         try:
             # Try to use proper I3D implementation if available
             from pytorch_i3d import InceptionI3d  # type: ignore[import]
+
             self.i3d = InceptionI3d(400, in_channels=3).to(device)
 
             # Load pretrained weights
@@ -131,7 +133,7 @@ class FVDCalculator:
             batch, channels, frames, h, w = videos.shape
             videos = videos.view(-1, channels, h, w)  # Flatten batch and frames
             videos = torch.nn.functional.interpolate(
-                videos, size=(224, 224), mode='bilinear', align_corners=False
+                videos, size=(224, 224), mode="bilinear", align_corners=False
             )
             videos = videos.view(batch, channels, frames, 224, 224)
 
@@ -154,10 +156,7 @@ class FVDCalculator:
         return features.cpu().numpy()
 
     def compute_fvd(
-        self,
-        real_videos: torch.Tensor,
-        fake_videos: torch.Tensor,
-        batch_size: int = 16
+        self, real_videos: torch.Tensor, fake_videos: torch.Tensor, batch_size: int = 16
     ) -> float:
         """
         Compute Fréchet Video Distance
@@ -175,8 +174,8 @@ class FVDCalculator:
         fake_features = []
 
         for i in range(0, len(real_videos), batch_size):
-            real_batch = real_videos[i:i + batch_size]
-            fake_batch = fake_videos[i:i + batch_size]
+            real_batch = real_videos[i : i + batch_size]
+            fake_batch = fake_videos[i : i + batch_size]
 
             real_features.append(self.extract_features(real_batch))
             fake_features.append(self.extract_features(fake_batch))
@@ -201,7 +200,7 @@ class FVDCalculator:
         if np.iscomplexobj(covmean):
             covmean = covmean.real
 
-        fvd = np.sum(diff ** 2) + np.trace(sigma_real + sigma_fake - 2 * covmean)
+        fvd = np.sum(diff**2) + np.trace(sigma_real + sigma_fake - 2 * covmean)
 
         return float(fvd)
 
@@ -211,7 +210,7 @@ def evaluate_fvd_on_trajectories(
     dataloader,
     num_trajectories: int = 512,
     trajectory_length: int = 16,
-    device: str = "cuda"
+    device: str = "cuda",
 ) -> dict:
     """
     Evaluate FVD on gameplay trajectories
@@ -237,7 +236,9 @@ def evaluate_fvd_on_trajectories(
 
     model.eval()
 
-    print(f"Generating {num_trajectories} trajectories of length {trajectory_length}...")
+    print(
+        f"Generating {num_trajectories} trajectories of length {trajectory_length}..."
+    )
 
     from tqdm import tqdm
 
@@ -245,8 +246,8 @@ def evaluate_fvd_on_trajectories(
         if traj_idx >= num_trajectories:
             break
 
-        context_frames = batch['context_frames'].to(device)  # (1, context_len, 3, H, W)
-        context_actions = batch['context_actions'].to(device)  # (1, context_len)
+        context_frames = batch["context_frames"].to(device)  # (1, context_len, 3, H, W)
+        context_actions = batch["context_actions"].to(device)  # (1, context_len)
 
         # Generate trajectory auto-regressively
         generated_trajectory = []
@@ -263,7 +264,7 @@ def evaluate_fvd_on_trajectories(
                     current_context_frames,
                     current_context_actions,
                     num_inference_steps=4,
-                    guidance_scale=1.5
+                    guidance_scale=1.5,
                 )
 
             generated_trajectory.append(generated_frame[0])  # (3, H, W)
@@ -273,23 +274,25 @@ def evaluate_fvd_on_trajectories(
             # In practice, would need to store longer trajectories
 
             # Update context (roll and add new frame)
-            if step < len(batch['target_frame']):
+            if step < len(batch["target_frame"]):
                 # Shift context window
-                current_context_frames = torch.cat([
-                    current_context_frames[:, 1:],
-                    generated_frame.unsqueeze(1)
-                ], dim=1)
+                current_context_frames = torch.cat(
+                    [current_context_frames[:, 1:], generated_frame.unsqueeze(1)], dim=1
+                )
 
                 # Update actions (use target action if available)
-                new_action = batch.get('target_action', torch.zeros(1, dtype=torch.long, device=device))
-                current_context_actions = torch.cat([
-                    current_context_actions[:, 1:],
-                    new_action.unsqueeze(1)
-                ], dim=1)
+                new_action = batch.get(
+                    "target_action", torch.zeros(1, dtype=torch.long, device=device)
+                )
+                current_context_actions = torch.cat(
+                    [current_context_actions[:, 1:], new_action.unsqueeze(1)], dim=1
+                )
 
         # Convert trajectory to video format
         generated_traj = torch.stack(generated_trajectory)  # (T, 3, H, W)
-        generated_traj = generated_traj.permute(1, 0, 2, 3).unsqueeze(0)  # (1, 3, T, H, W)
+        generated_traj = generated_traj.permute(1, 0, 2, 3).unsqueeze(
+            0
+        )  # (1, 3, T, H, W)
 
         # For real trajectory, we'd need actual gameplay
         # For now, use generated as placeholder (should replace with real data)
@@ -312,9 +315,9 @@ def evaluate_fvd_on_trajectories(
     print(f"Paper reference: 114.02 (16 frames), 186.23 (32 frames)")
 
     return {
-        'fvd': fvd,
-        'trajectory_length': trajectory_length,
-        'num_trajectories': num_trajectories,
+        "fvd": fvd,
+        "trajectory_length": trajectory_length,
+        "num_trajectories": num_trajectories,
     }
 
 
@@ -341,4 +344,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"FVD test failed: {e}")
         import traceback
+
         traceback.print_exc()

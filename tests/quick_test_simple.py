@@ -6,6 +6,7 @@ Run this after installing dependencies
 import sys
 from pathlib import Path
 
+
 def test_imports():
     """Test if all required packages can be imported"""
     print("Testing imports...")
@@ -52,7 +53,9 @@ def test_cuda():
         print(f"  [OK] CUDA available")
         print(f"  Device: {torch.cuda.get_device_name(0)}")
         print(f"  CUDA Version: {torch.version.cuda}")
-        print(f"  Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+        print(
+            f"  Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB"
+        )
         return True
     else:
         print(f"  [WARN] CUDA not available, will use CPU")
@@ -124,15 +127,17 @@ def test_agent():
     print("\nTesting DQN agent...")
 
     try:
-        from src.environment.chrome_dino_env import SimpleDinoEnv
         from src.agent.dqn_agent import DQNAgent
+        from src.environment.chrome_dino_env import SimpleDinoEnv
 
         env = SimpleDinoEnv(width=512, height=256)
         agent = DQNAgent(env, device="cpu")  # Use CPU for testing
 
         print(f"  [OK] Agent created")
         print(f"  Device: {agent.device}")
-        print(f"  Parameters: {sum(p.numel() for p in agent.policy_net.parameters()):,}")
+        print(
+            f"  Parameters: {sum(p.numel() for p in agent.policy_net.parameters()):,}"
+        )
 
         # Test action selection
         obs, _ = env.reset()
@@ -146,15 +151,16 @@ def test_agent():
     except Exception as e:
         print(f"  [FAIL] Agent test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def main():
     """Run all tests"""
-    print("="*60)
+    print("=" * 60)
     print("GameNGen - Quick Test Script")
-    print("="*60)
+    print("=" * 60)
 
     results = {}
 
@@ -164,9 +170,9 @@ def main():
     results["environment"] = test_environment()
     results["agent"] = test_agent()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Test Summary:")
-    print("="*60)
+    print("=" * 60)
 
     for test, passed in results.items():
         status = "[PASS]" if passed else "[FAIL]"
@@ -174,16 +180,16 @@ def main():
 
     all_passed = all(results.values())
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("[SUCCESS] All tests passed! Ready to train.")
         print("\nNext steps:")
         print("1. Review config.yaml")
         print("2. Run: python src/agent/train_dqn.py")
-        print("="*60)
+        print("=" * 60)
     else:
         print("[ERROR] Some tests failed. Please fix errors above.")
-        print("="*60)
+        print("=" * 60)
 
     return all_passed
 

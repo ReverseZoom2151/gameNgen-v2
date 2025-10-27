@@ -7,10 +7,11 @@ Based on paper's Appendix A.4: "Out-of-Distribution Sampling"
 "The model often consistently integrates the added characters into the new location"
 """
 
-import torch
-import numpy as np
-from PIL import Image
 from typing import List, Optional
+
+import numpy as np
+import torch
+from PIL import Image
 
 
 class ImageBasedModding:
@@ -36,9 +37,7 @@ class ImageBasedModding:
         self.device = device
 
     def load_and_preprocess_image(
-        self,
-        image_path: str,
-        target_size: tuple = (256, 512)
+        self, image_path: str, target_size: tuple = (256, 512)
     ) -> np.ndarray:
         """
         Load and preprocess image
@@ -50,7 +49,7 @@ class ImageBasedModding:
         Returns:
             frame: (H, W, 3) numpy array in [0, 255]
         """
-        img = Image.open(image_path).convert('RGB')
+        img = Image.open(image_path).convert("RGB")
 
         # Resize to target size
         img = img.resize((target_size[1], target_size[0]))  # PIL uses (W, H)
@@ -65,7 +64,7 @@ class ImageBasedModding:
         base_frame: np.ndarray,
         object_frame: np.ndarray,
         position: tuple,
-        mask: Optional[np.ndarray] = None
+        mask: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         Paste object from one frame into another
@@ -90,17 +89,15 @@ class ImageBasedModding:
             y_end = min(y + h, result.shape[0])
             x_end = min(x + w, result.shape[1])
 
-            result[y:y_end, x:x_end] = object_frame[:y_end-y, :x_end-x]
+            result[y:y_end, x:x_end] = object_frame[: y_end - y, : x_end - x]
         else:
             # Masked paste (for non-rectangular objects)
             h, w = object_frame.shape[:2]
             y, x = position
 
             for c in range(3):  # RGB channels
-                result[y:y+h, x:x+w, c] = np.where(
-                    mask,
-                    object_frame[:, :, c],
-                    result[y:y+h, x:x+w, c]
+                result[y : y + h, x : x + w, c] = np.where(
+                    mask, object_frame[:, :, c], result[y : y + h, x : x + w, c]
                 )
 
         return result
@@ -130,11 +127,15 @@ class ImageBasedModding:
         frame_tensor = frame_tensor.unsqueeze(0).to(self.device)  # (1, 3, H, W)
 
         # Replicate for entire context
-        context_frames = frame_tensor.unsqueeze(1).repeat(1, self.model.context_length, 1, 1, 1)
+        context_frames = frame_tensor.unsqueeze(1).repeat(
+            1, self.model.context_length, 1, 1, 1
+        )
         # (1, context_length, 3, H, W)
 
         # Use "no action" for initial context
-        context_actions = torch.zeros(1, self.model.context_length, dtype=torch.long, device=self.device)
+        context_actions = torch.zeros(
+            1, self.model.context_length, dtype=torch.long, device=self.device
+        )
 
         generated_frames = []
 
@@ -149,7 +150,7 @@ class ImageBasedModding:
                     context_frames,
                     context_actions,
                     num_inference_steps=4,
-                    guidance_scale=1.5
+                    guidance_scale=1.5,
                 )
 
             # Convert to numpy
@@ -192,9 +193,9 @@ class ImageBasedModding:
             output_video_path: Output video
             num_frames: Frames to generate
         """
-        print("="*60)
+        print("=" * 60)
         print("Image-Based Character Insertion")
-        print("="*60)
+        print("=" * 60)
 
         # Load images
         base = self.load_and_preprocess_image(base_frame_path)
@@ -208,17 +209,16 @@ class ImageBasedModding:
 
         # Generate gameplay
         generated_frames = self.generate_from_edited_frame(
-            modified_frame,
-            actions,
-            num_frames
+            modified_frame, actions, num_frames
         )
 
         # Save as video
         import imageio
+
         imageio.mimsave(output_video_path, generated_frames, fps=20)
 
         print(f"\n✓ Saved modded gameplay to {output_video_path}")
-        print("="*60)
+        print("=" * 60)
 
         return generated_frames
 
@@ -242,37 +242,34 @@ class ImageBasedModding:
             output_video_path: Output video
             num_frames: Frames to generate
         """
-        print("="*60)
+        print("=" * 60)
         print("Level Layout Modification")
-        print("="*60)
+        print("=" * 60)
 
         # Load base frame
         modified_frame = self.load_and_preprocess_image(base_frame_path)
 
         # Add each layout element
         for element in layout_elements:
-            element_img = self.load_and_preprocess_image(element['image_path'])
+            element_img = self.load_and_preprocess_image(element["image_path"])
             modified_frame = self.paste_object(
-                modified_frame,
-                element_img,
-                element['position']
+                modified_frame, element_img, element["position"]
             )
 
         print(f"Added {len(layout_elements)} layout elements")
 
         # Generate gameplay
         generated_frames = self.generate_from_edited_frame(
-            modified_frame,
-            actions,
-            num_frames
+            modified_frame, actions, num_frames
         )
 
         # Save
         import imageio
+
         imageio.mimsave(output_video_path, generated_frames, fps=20)
 
         print(f"\n✓ Saved modified level to {output_video_path}")
-        print("="*60)
+        print("=" * 60)
 
         return generated_frames
 

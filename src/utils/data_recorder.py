@@ -3,13 +3,14 @@ Data Recording Utilities for GameNGen
 Records episodes with frames and actions for training diffusion model
 """
 
-import numpy as np
 import json
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-import cv2
-from tqdm import tqdm
 import pickle
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import cv2
+import numpy as np
+from tqdm import tqdm
 
 
 class EpisodeRecorder:
@@ -42,13 +43,7 @@ class EpisodeRecorder:
         # Batch buffer for efficient saving
         self.batch_buffer = []
 
-    def add_step(
-        self,
-        frame: np.ndarray,
-        action: int,
-        reward: float,
-        done: bool
-    ):
+    def add_step(self, frame: np.ndarray, action: int, reward: float, done: bool):
         """Add single step to current episode"""
         self.current_episode["frames"].append(frame)
         self.current_episode["actions"].append(action)
@@ -100,7 +95,9 @@ class EpisodeRecorder:
         with open(filename, "wb") as f:
             pickle.dump(self.batch_buffer, f)
 
-        print(f"Saved batch {batch_id} with {len(self.batch_buffer)} episodes to {filename}")
+        print(
+            f"Saved batch {batch_id} with {len(self.batch_buffer)} episodes to {filename}"
+        )
 
         # Clear buffer
         self.batch_buffer = []
@@ -174,9 +171,7 @@ class DatasetLoader:
                 yield episode
 
     def create_trajectory_dataset(
-        self,
-        context_length: int = 32,
-        output_file: Optional[str] = None
+        self, context_length: int = 32, output_file: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Create dataset of trajectories for diffusion model training
@@ -280,7 +275,7 @@ if __name__ == "__main__":
     recorder.finalize()
 
     # Test loader
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Testing DataLoader...")
 
     loader = DatasetLoader(output_dir)

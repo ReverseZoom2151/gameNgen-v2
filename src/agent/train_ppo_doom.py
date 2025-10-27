@@ -4,15 +4,16 @@ Based on paper's Section 4.1 - uses PPO with Stable Baselines3
 """
 
 import argparse
-import yaml
-from pathlib import Path
-import numpy as np
 import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+import yaml
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
-import torch
+from stable_baselines3.common.vec_env import SubprocVecEnv
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -29,10 +30,7 @@ class RecordingCallback(BaseCallback):
     """
 
     def __init__(
-        self,
-        recorder: EpisodeRecorder,
-        record_freq: int = 1,
-        verbose: int = 0
+        self, recorder: EpisodeRecorder, record_freq: int = 1, verbose: int = 0
     ):
         super().__init__(verbose)
         self.recorder = recorder
@@ -48,16 +46,16 @@ class RecordingCallback(BaseCallback):
 
         # Get current observation and action
         # Note: For vectorized envs, we handle each env separately
-        for i in range(len(self.locals['infos'])):
+        for i in range(len(self.locals["infos"])):
             # Get frame from observation
-            frame = self.locals['new_obs'][i]
+            frame = self.locals["new_obs"][i]
 
             # Get action
-            action = self.locals['actions'][i]
+            action = self.locals["actions"][i]
 
             # Get reward and done
-            reward = self.locals['rewards'][i]
-            done = self.locals['dones'][i]
+            reward = self.locals["rewards"][i]
+            done = self.locals["dones"][i]
 
             # Record step
             self.recorder.add_step(frame, action, reward, done)
@@ -77,18 +75,20 @@ class ProgressCallback(BaseCallback):
         """Called at each step"""
 
         # Check for episode end
-        for info in self.locals['infos']:
-            if 'episode' in info:
-                self.episode_rewards.append(info['episode']['r'])
-                self.episode_lengths.append(info['episode']['l'])
+        for info in self.locals["infos"]:
+            if "episode" in info:
+                self.episode_rewards.append(info["episode"]["r"])
+                self.episode_lengths.append(info["episode"]["l"])
 
                 if len(self.episode_rewards) % 10 == 0:
                     avg_reward = np.mean(self.episode_rewards[-10:])
                     avg_length = np.mean(self.episode_lengths[-10:])
 
-                    print(f"\nEpisode {len(self.episode_rewards)} | "
-                          f"Reward: {avg_reward:.2f} | "
-                          f"Length: {avg_length:.1f}")
+                    print(
+                        f"\nEpisode {len(self.episode_rewards)} | "
+                        f"Reward: {avg_reward:.2f} | "
+                        f"Length: {avg_length:.1f}"
+                    )
 
         return True
 
@@ -104,13 +104,14 @@ def make_env(config: dict, rank: int = 0):
     Returns:
         Function that creates environment
     """
+
     def _init():
         env = create_vizdoom_env(
-            scenario=config['environment'].get('scenario', 'basic'),
-            width=config['environment']['resolution']['width'],
-            height=config['environment']['resolution']['height'],
-            frame_skip=config['environment'].get('action_repeat', 4),
-            use_paper_reward=config.get('use_paper_reward', False),
+            scenario=config["environment"].get("scenario", "basic"),
+            width=config["environment"]["resolution"]["width"],
+            height=config["environment"]["resolution"]["height"],
+            frame_skip=config["environment"].get("action_repeat", 4),
+            use_paper_reward=config.get("use_paper_reward", False),
             visible=False,
         )
 
@@ -126,23 +127,23 @@ def train_ppo_doom(config: dict):
     """Train PPO agent on DOOM and record episodes"""
 
     # Set random seeds
-    seed = config.get('seed', 42)
+    seed = config.get("seed", 42)
     np.random.seed(seed)
     torch.manual_seed(seed)
 
     # Create output directories
-    output_dir = Path(config['data_dir'])
+    output_dir = Path(config["data_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    checkpoint_dir = Path(config['checkpoint_dir'])
+    checkpoint_dir = Path(config["checkpoint_dir"])
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    log_dir = Path(config['log_dir'])
+    log_dir = Path(config["log_dir"])
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    print("="*60)
+    print("=" * 60)
     print("Training PPO Agent on DOOM")
-    print("="*60)
+    print("=" * 60)
     print(f"Data directory: {output_dir}")
     print(f"Checkpoint directory: {checkpoint_dir}")
     print(f"Log directory: {log_dir}")
@@ -158,16 +159,16 @@ def train_ppo_doom(config: dict):
 
     # Create data recorder
     print("\nCreating data recorder...")
-    data_config = config['data_collection']
+    data_config = config["data_collection"]
 
     recorder = EpisodeRecorder(
         output_dir=output_dir,
-        compress=data_config.get('compress', True),
-        save_frequency=data_config.get('save_frequency', 10),
+        compress=data_config.get("compress", True),
+        save_frequency=data_config.get("save_frequency", 10),
     )
 
     # PPO hyperparameters from paper (Section 4.1)
-    agent_config = config['agent']
+    agent_config = config["agent"]
 
     print("\nCreating PPO agent...")
     print(f"Algorithm: {agent_config['algorithm']}")
@@ -190,20 +191,20 @@ def train_ppo_doom(config: dict):
     model = PPO(
         "CnnPolicy",
         envs,
-        learning_rate=agent_config['learning_rate'],
-        n_steps=agent_config['n_steps'],
-        batch_size=agent_config['batch_size'],
-        n_epochs=agent_config['n_epochs'],
-        gamma=agent_config['gamma'],
-        gae_lambda=agent_config.get('gae_lambda', 0.95),
-        clip_range=agent_config.get('clip_epsilon', 0.2),
-        ent_coef=agent_config.get('entropy_coef', 0.1),
-        vf_coef=agent_config.get('value_coef', 0.5),
-        max_grad_norm=agent_config.get('max_grad_norm', 0.5),
+        learning_rate=agent_config["learning_rate"],
+        n_steps=agent_config["n_steps"],
+        batch_size=agent_config["batch_size"],
+        n_epochs=agent_config["n_epochs"],
+        gamma=agent_config["gamma"],
+        gae_lambda=agent_config.get("gae_lambda", 0.95),
+        clip_range=agent_config.get("clip_epsilon", 0.2),
+        ent_coef=agent_config.get("entropy_coef", 0.1),
+        vf_coef=agent_config.get("value_coef", 0.5),
+        max_grad_norm=agent_config.get("max_grad_norm", 0.5),
         policy_kwargs=policy_kwargs,
         verbose=1,
         tensorboard_log=str(log_dir),
-        device=config.get('device', 'cuda'),
+        device=config.get("device", "cuda"),
     )
 
     print("✓ PPO agent created")
@@ -214,7 +215,8 @@ def train_ppo_doom(config: dict):
     progress_callback = ProgressCallback()
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=agent_config.get('save_freq', 500) * num_envs,  # Adjust for vectorized envs
+        save_freq=agent_config.get("save_freq", 500)
+        * num_envs,  # Adjust for vectorized envs
         save_path=str(checkpoint_dir),
         name_prefix="ppo_doom",
         save_replay_buffer=False,
@@ -224,15 +226,15 @@ def train_ppo_doom(config: dict):
     callbacks = [recording_callback, progress_callback, checkpoint_callback]
 
     # Training
-    total_timesteps = agent_config.get('total_timesteps', 50000000)
+    total_timesteps = agent_config.get("total_timesteps", 50000000)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"Starting PPO training")
     print(f"Total timesteps: {total_timesteps:,}")
     print(f"Parallel environments: {num_envs}")
     print(f"Steps per update: {agent_config['n_steps']}")
     print(f"Batch size: {agent_config['batch_size']}")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Train
     model.learn(
@@ -253,11 +255,11 @@ def train_ppo_doom(config: dict):
     # Close environments
     envs.close()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Training complete!")
     print(f"Total frames recorded: {recorder.total_frames}")
     print(f"Total episodes: {recorder.episode_count}")
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
@@ -266,24 +268,21 @@ def main():
         "--config",
         type=str,
         default="configs/tier2_doom_lite.yaml",
-        help="Path to config file"
+        help="Path to config file",
     )
     parser.add_argument(
-        "--timesteps",
-        type=int,
-        default=None,
-        help="Override total timesteps"
+        "--timesteps", type=int, default=None, help="Override total timesteps"
     )
     parser.add_argument(
         "--scenario",
         type=str,
         default=None,
-        help="DOOM scenario (basic, deadly_corridor, etc.)"
+        help="DOOM scenario (basic, deadly_corridor, etc.)",
     )
     parser.add_argument(
         "--use_paper_reward",
         action="store_true",
-        help="Use paper's reward function (Appendix A.5)"
+        help="Use paper's reward function (Appendix A.5)",
     )
 
     args = parser.parse_args()
@@ -294,18 +293,18 @@ def main():
         print(f"Config file not found: {config_path}")
         return
 
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
     # Apply overrides
     if args.timesteps:
-        config['agent']['total_timesteps'] = args.timesteps
+        config["agent"]["total_timesteps"] = args.timesteps
 
     if args.scenario:
-        config['environment']['scenario'] = args.scenario
+        config["environment"]["scenario"] = args.scenario
 
     if args.use_paper_reward:
-        config['use_paper_reward'] = True
+        config["use_paper_reward"] = True
 
     # Train
     train_ppo_doom(config)

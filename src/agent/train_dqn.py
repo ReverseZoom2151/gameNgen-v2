@@ -3,18 +3,19 @@ Train DQN Agent on Chrome Dino and record gameplay
 """
 
 import argparse
-import yaml
+import sys
 from pathlib import Path
+
 import numpy as np
 import torch
+import yaml
 from tqdm import tqdm
-import sys
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.environment.chrome_dino_env import SimpleDinoEnv
 from src.agent.dqn_agent import DQNAgent
+from src.environment.chrome_dino_env import SimpleDinoEnv
 from src.utils.data_recorder import EpisodeRecorder
 
 
@@ -66,7 +67,9 @@ def train_dqn_agent(config: dict):
     )
 
     print(f"Device: {agent.device}")
-    print(f"DQN Network parameters: {sum(p.numel() for p in agent.policy_net.parameters()):,}")
+    print(
+        f"DQN Network parameters: {sum(p.numel() for p in agent.policy_net.parameters()):,}"
+    )
 
     # Create data recorder
     print("\nCreating data recorder...")
@@ -158,7 +161,7 @@ def train_dqn_agent(config: dict):
         agent.episodes_done = episode + 1
 
     # Finalize recording
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Training complete! Finalizing recordings...")
     recorder.finalize()
 
@@ -168,7 +171,7 @@ def train_dqn_agent(config: dict):
     print(f"Saved final agent to {final_checkpoint}")
 
     # Print statistics
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Training Statistics:")
     print(f"Total episodes: {total_episodes}")
     print(f"Total steps: {global_step}")
@@ -176,7 +179,7 @@ def train_dqn_agent(config: dict):
     print(f"Average length (last 100): {np.mean(episode_lengths[-100:]):.1f}")
     print(f"Average score (last 100): {np.mean(recent_scores[-100:]):.1f}")
     print(f"Total frames recorded: {recorder.total_frames}")
-    print("="*60)
+    print("=" * 60)
 
     env.close()
 

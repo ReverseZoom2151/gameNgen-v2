@@ -4,8 +4,8 @@ Avoids downloads during training and verifies everything works
 """
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -17,15 +17,16 @@ def download_stable_diffusion(model_name: str = "CompVis/stable-diffusion-v1-4")
     This downloads ~4GB and caches locally.
     Subsequent runs will use cached version.
     """
-    print("="*60)
+    print("=" * 60)
     print("Downloading Stable Diffusion v1.4")
-    print("="*60)
+    print("=" * 60)
     print(f"Model: {model_name}")
     print("Size: ~4GB")
     print("This may take 5-15 minutes depending on connection...")
     print()
 
-    from diffusers import StableDiffusionPipeline, AutoencoderKL, UNet2DConditionModel
+    from diffusers import (AutoencoderKL, StableDiffusionPipeline,
+                           UNet2DConditionModel)
 
     # Download components
     print("Downloading VAE...")
@@ -40,19 +41,19 @@ def download_stable_diffusion(model_name: str = "CompVis/stable-diffusion-v1-4")
     pipeline = StableDiffusionPipeline.from_pretrained(model_name)
     print("✓ Pipeline downloaded")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("All Stable Diffusion components downloaded!")
     print("Location: ~/.cache/huggingface/hub/")
-    print("="*60)
+    print("=" * 60)
 
 
 def download_vizdoom_scenarios():
     """
     Download ViZDoom scenario files if needed
     """
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Checking ViZDoom Scenarios")
-    print("="*60)
+    print("=" * 60)
 
     try:
         import vizdoom as vzd
@@ -85,9 +86,9 @@ def download_vizdoom_scenarios():
 
 def verify_pytorch_cuda():
     """Verify PyTorch CUDA is working"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Verifying PyTorch CUDA")
-    print("="*60)
+    print("=" * 60)
 
     import torch
 
@@ -97,30 +98,30 @@ def verify_pytorch_cuda():
     if torch.cuda.is_available():
         print(f"CUDA version: {torch.version.cuda}")
         print(f"GPU: {torch.cuda.get_device_name(0)}")
-        print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+        print(
+            f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB"
+        )
         print("✓ CUDA working correctly")
     else:
         print("⚠ CUDA not available - will use CPU (slow!)")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download required models and verify setup")
-    parser.add_argument(
-        "--skip-sd",
-        action="store_true",
-        help="Skip Stable Diffusion download"
+    parser = argparse.ArgumentParser(
+        description="Download required models and verify setup"
     )
     parser.add_argument(
-        "--skip-vizdoom",
-        action="store_true",
-        help="Skip ViZDoom check"
+        "--skip-sd", action="store_true", help="Skip Stable Diffusion download"
+    )
+    parser.add_argument(
+        "--skip-vizdoom", action="store_true", help="Skip ViZDoom check"
     )
 
     args = parser.parse_args()
 
-    print("="*60)
+    print("=" * 60)
     print("GameNGen - Model Download & Verification")
-    print("="*60)
+    print("=" * 60)
 
     # Verify PyTorch
     verify_pytorch_cuda()
@@ -137,14 +138,14 @@ def main():
     if not args.skip_vizdoom:
         download_vizdoom_scenarios()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Setup Complete!")
-    print("="*60)
+    print("=" * 60)
     print("\nYou're ready to train!")
     print("Next steps:")
     print("  python tests/test_all_tiers.py  # Verify everything")
     print("  python src/agent/train_dqn.py   # Start training")
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

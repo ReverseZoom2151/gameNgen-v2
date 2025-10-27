@@ -3,12 +3,13 @@ Comprehensive Evaluation Metrics for GameNGen
 Includes PSNR, LPIPS, SSIM, FVD as used in the paper
 """
 
-import torch
-import numpy as np
 from typing import Dict
+
 import lpips
-from skimage.metrics import structural_similarity as ssim
+import numpy as np
+import torch
 from scipy.linalg import sqrtm
+from skimage.metrics import structural_similarity as ssim
 
 
 class GameNGenEvaluator:
@@ -27,16 +28,13 @@ class GameNGenEvaluator:
         self.device = device
 
         # Load LPIPS model
-        self.lpips_model = lpips.LPIPS(net='alex').to(device)
+        self.lpips_model = lpips.LPIPS(net="alex").to(device)
         self.lpips_model.eval()
 
         print(f"Evaluator initialized on {device}")
 
     def compute_psnr(
-        self,
-        pred: torch.Tensor,
-        target: torch.Tensor,
-        max_value: float = 255.0
+        self, pred: torch.Tensor, target: torch.Tensor, max_value: float = 255.0
     ) -> float:
         """
         Compute PSNR between predicted and target frames
@@ -52,16 +50,12 @@ class GameNGenEvaluator:
         mse = torch.mean((pred - target) ** 2).item()
 
         if mse == 0:
-            return float('inf')
+            return float("inf")
 
         psnr = 20 * np.log10(max_value) - 10 * np.log10(mse)
         return psnr
 
-    def compute_lpips(
-        self,
-        pred: torch.Tensor,
-        target: torch.Tensor
-    ) -> float:
+    def compute_lpips(self, pred: torch.Tensor, target: torch.Tensor) -> float:
         """
         Compute LPIPS (perceptual distance)
 
@@ -81,11 +75,7 @@ class GameNGenEvaluator:
 
         return lpips_val.mean().item()
 
-    def compute_ssim(
-        self,
-        pred: np.ndarray,
-        target: np.ndarray
-    ) -> float:
+    def compute_ssim(self, pred: np.ndarray, target: np.ndarray) -> float:
         """
         Compute SSIM
 
@@ -108,19 +98,13 @@ class GameNGenEvaluator:
 
         return ssim_val
 
-    def compute_mse(
-        self,
-        pred: torch.Tensor,
-        target: torch.Tensor
-    ) -> float:
+    def compute_mse(self, pred: torch.Tensor, target: torch.Tensor) -> float:
         """Compute MSE"""
         mse = torch.mean((pred - target) ** 2).item()
         return mse
 
     def compute_all_metrics(
-        self,
-        pred_frames: torch.Tensor,
-        target_frames: torch.Tensor
+        self, pred_frames: torch.Tensor, target_frames: torch.Tensor
     ) -> Dict[str, float]:
         """
         Compute all metrics for a batch of frames
@@ -144,19 +128,19 @@ class GameNGenEvaluator:
         metrics = {}
 
         # PSNR
-        metrics['psnr'] = self.compute_psnr(pred_frames, target_frames)
+        metrics["psnr"] = self.compute_psnr(pred_frames, target_frames)
 
         # LPIPS
-        metrics['lpips'] = self.compute_lpips(pred_frames, target_frames)
+        metrics["lpips"] = self.compute_lpips(pred_frames, target_frames)
 
         # MSE
-        metrics['mse'] = self.compute_mse(pred_frames, target_frames)
+        metrics["mse"] = self.compute_mse(pred_frames, target_frames)
 
         # SSIM (on first frame only for speed)
         if pred_frames.shape[0] > 0:
             pred_np = pred_frames[0].permute(1, 2, 0).cpu().numpy()
             target_np = target_frames[0].permute(1, 2, 0).cpu().numpy()
-            metrics['ssim'] = self.compute_ssim(pred_np, target_np)
+            metrics["ssim"] = self.compute_ssim(pred_np, target_np)
 
         return metrics
 
@@ -200,19 +184,21 @@ class FVDCalculator:
         for video in videos:
             # Spatial features
             spatial_mean = video.mean(dim=[1, 2, 3])  # (T,)
-            spatial_std = video.std(dim=[1, 2, 3])    # (T,)
+            spatial_std = video.std(dim=[1, 2, 3])  # (T,)
 
             # Temporal features
             temporal_mean = video.mean(dim=0).flatten()  # Flatten spatial
             temporal_std = video.std(dim=0).flatten()
 
             # Combine
-            feat = torch.cat([
-                spatial_mean,
-                spatial_std,
-                temporal_mean[:100],  # Take first 100
-                temporal_std[:100],
-            ])
+            feat = torch.cat(
+                [
+                    spatial_mean,
+                    spatial_std,
+                    temporal_mean[:100],  # Take first 100
+                    temporal_std[:100],
+                ]
+            )
 
             features.append(feat)
 
@@ -221,9 +207,7 @@ class FVDCalculator:
         return features
 
     def compute_fvd(
-        self,
-        real_videos: torch.Tensor,
-        fake_videos: torch.Tensor
+        self, real_videos: torch.Tensor, fake_videos: torch.Tensor
     ) -> float:
         """
         Compute FVD between real and generated videos
@@ -253,7 +237,7 @@ class FVDCalculator:
         if np.iscomplexobj(covmean):
             covmean = covmean.real
 
-        fvd = np.sum(diff ** 2) + np.trace(sigma_real + sigma_fake - 2 * covmean)
+        fvd = np.sum(diff**2) + np.trace(sigma_real + sigma_fake - 2 * covmean)
 
         return fvd
 
@@ -282,9 +266,9 @@ def evaluate_model_comprehensive(
     """
     evaluator = GameNGenEvaluator(device=device)
 
-    print("="*60)
+    print("=" * 60)
     print("Comprehensive Model Evaluation")
-    print("="*60)
+    print("=" * 60)
 
     all_psnr = []
     all_lpips = []
@@ -300,13 +284,16 @@ def evaluate_model_comprehensive(
     model.eval()
 
     from tqdm import tqdm
-    for traj_idx, batch in enumerate(tqdm(dataloader, desc="Evaluating", total=num_trajectories)):
+
+    for traj_idx, batch in enumerate(
+        tqdm(dataloader, desc="Evaluating", total=num_trajectories)
+    ):
         if traj_idx >= num_trajectories:
             break
 
-        context_frames = batch['context_frames'].to(device)
-        context_actions = batch['context_actions'].to(device)
-        target_frame = batch['target_frame'].to(device)
+        context_frames = batch["context_frames"].to(device)
+        context_actions = batch["context_actions"].to(device)
+        target_frame = batch["target_frame"].to(device)
 
         # Generate frame
         with torch.no_grad():
@@ -320,36 +307,36 @@ def evaluate_model_comprehensive(
         # Compute metrics
         metrics = evaluator.compute_all_metrics(generated, target_frame)
 
-        all_psnr.append(metrics['psnr'])
-        all_lpips.append(metrics['lpips'])
-        all_mse.append(metrics['mse'])
-        if 'ssim' in metrics:
-            all_ssim.append(metrics['ssim'])
+        all_psnr.append(metrics["psnr"])
+        all_lpips.append(metrics["lpips"])
+        all_mse.append(metrics["mse"])
+        if "ssim" in metrics:
+            all_ssim.append(metrics["ssim"])
 
     # Aggregate results
     results = {
-        'psnr_mean': np.mean(all_psnr),
-        'psnr_std': np.std(all_psnr),
-        'lpips_mean': np.mean(all_lpips),
-        'lpips_std': np.std(all_lpips),
-        'mse_mean': np.mean(all_mse),
-        'mse_std': np.std(all_mse),
+        "psnr_mean": np.mean(all_psnr),
+        "psnr_std": np.std(all_psnr),
+        "lpips_mean": np.mean(all_lpips),
+        "lpips_std": np.std(all_lpips),
+        "mse_mean": np.mean(all_mse),
+        "mse_std": np.std(all_mse),
     }
 
     if all_ssim:
-        results['ssim_mean'] = np.mean(all_ssim)
-        results['ssim_std'] = np.std(all_ssim)
+        results["ssim_mean"] = np.mean(all_ssim)
+        results["ssim_std"] = np.std(all_ssim)
 
     # Print results
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Evaluation Results:")
-    print("="*60)
+    print("=" * 60)
     print(f"PSNR:  {results['psnr_mean']:.2f} ± {results['psnr_std']:.2f} dB")
     print(f"LPIPS: {results['lpips_mean']:.4f} ± {results['lpips_std']:.4f}")
     print(f"MSE:   {results['mse_mean']:.2f} ± {results['mse_std']:.2f}")
-    if 'ssim_mean' in results:
+    if "ssim_mean" in results:
         print(f"SSIM:  {results['ssim_mean']:.4f} ± {results['ssim_std']:.4f}")
-    print("="*60)
+    print("=" * 60)
 
     return results
 

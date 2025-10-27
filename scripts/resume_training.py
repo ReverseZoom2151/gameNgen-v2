@@ -4,10 +4,11 @@ Makes it easy to resume interrupted training from checkpoint
 """
 
 import argparse
-from pathlib import Path
 import sys
-import yaml
+from pathlib import Path
 from typing import Optional
+
+import yaml
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -33,13 +34,13 @@ def find_latest_checkpoint(checkpoint_dir: str, pattern: str = "*.pt") -> Path:
 def resume_diffusion_training(
     config_path: str,
     checkpoint_dir: str = "checkpoints",
-    additional_steps: Optional[int] = None
+    additional_steps: Optional[int] = None,
 ):
     """Resume diffusion model training from latest checkpoint"""
 
-    print("="*60)
+    print("=" * 60)
     print("Resuming Diffusion Training")
-    print("="*60)
+    print("=" * 60)
 
     # Find latest checkpoint
     try:
@@ -48,16 +49,17 @@ def resume_diffusion_training(
 
         # Load checkpoint to get info
         import torch
-        ckpt = torch.load(latest_checkpoint, map_location='cpu')
+
+        ckpt = torch.load(latest_checkpoint, map_location="cpu")
 
         print(f"Checkpoint step: {ckpt.get('step', 'unknown')}")
 
         # Load config
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f)
 
-        current_step = ckpt.get('step', 0)
-        total_steps = config['diffusion']['num_train_steps']
+        current_step = ckpt.get("step", 0)
+        total_steps = config["diffusion"]["num_train_steps"]
 
         if additional_steps:
             total_steps = current_step + additional_steps
@@ -76,7 +78,9 @@ def resume_diffusion_training(
 
         print(f"\nResuming training for {remaining_steps:,} more steps...")
         print(f"\nCommand to run:")
-        print(f"  python src/diffusion/train.py --config {config_path} --steps {total_steps}")
+        print(
+            f"  python src/diffusion/train.py --config {config_path} --steps {total_steps}"
+        )
 
     except Exception as e:
         print(f"\n✗ Error: {e}")
@@ -87,9 +91,9 @@ def resume_diffusion_training(
 def resume_rl_training(checkpoint_dir: str = "checkpoints", env_type: str = "dqn"):
     """Resume RL agent training"""
 
-    print("="*60)
+    print("=" * 60)
     print("Resuming RL Agent Training")
-    print("="*60)
+    print("=" * 60)
 
     try:
         if env_type == "dqn":
@@ -112,35 +116,25 @@ def main():
     parser.add_argument(
         "type",
         choices=["diffusion", "rl-dqn", "rl-ppo"],
-        help="Type of training to resume"
+        help="Type of training to resume",
     )
     parser.add_argument(
         "--config",
         type=str,
         default="configs/tier1_chrome_dino.yaml",
-        help="Path to config file"
+        help="Path to config file",
     )
     parser.add_argument(
-        "--checkpoint-dir",
-        type=str,
-        default="checkpoints",
-        help="Checkpoint directory"
+        "--checkpoint-dir", type=str, default="checkpoints", help="Checkpoint directory"
     )
     parser.add_argument(
-        "--steps",
-        type=int,
-        default=None,
-        help="Additional steps to train"
+        "--steps", type=int, default=None, help="Additional steps to train"
     )
 
     args = parser.parse_args()
 
     if args.type == "diffusion":
-        resume_diffusion_training(
-            args.config,
-            args.checkpoint_dir,
-            args.steps
-        )
+        resume_diffusion_training(args.config, args.checkpoint_dir, args.steps)
     elif args.type == "rl-dqn":
         resume_rl_training(args.checkpoint_dir, "dqn")
     elif args.type == "rl-ppo":

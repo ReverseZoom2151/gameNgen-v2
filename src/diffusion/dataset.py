@@ -3,12 +3,13 @@ PyTorch Dataset for GameNGen
 Loads recorded gameplay episodes and creates training samples
 """
 
-import torch
-from torch.utils.data import Dataset, DataLoader
-import numpy as np
-from pathlib import Path
 import pickle
-from typing import Dict, List, Tuple, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 
@@ -49,7 +50,8 @@ class GameplayDataset(Dataset):
         metadata_path = self.data_dir / "metadata.json"
         if metadata_path.exists():
             import json
-            with open(metadata_path, 'r') as f:
+
+            with open(metadata_path, "r") as f:
                 self.metadata = json.load(f)
             print(f"Loaded metadata: {self.metadata}")
         else:
@@ -86,13 +88,13 @@ class GameplayDataset(Dataset):
 
         for batch_idx, batch_file in enumerate(tqdm(self.batch_files, desc="Indexing")):
             # Load batch
-            with open(batch_file, 'rb') as f:
+            with open(batch_file, "rb") as f:
                 batch = pickle.load(f)
 
             # Process each episode in batch
             for episode_idx, episode in enumerate(batch):
-                frames = episode['frames']
-                actions = episode['actions']
+                frames = episode["frames"]
+                actions = episode["actions"]
 
                 # Create trajectories from this episode
                 # Need at least context_length + 1 frames
@@ -102,16 +104,19 @@ class GameplayDataset(Dataset):
                 # Create one trajectory for each valid position
                 for start_idx in range(len(frames) - self.context_length):
                     trajectory = {
-                        'batch_idx': batch_idx,
-                        'batch_file': str(batch_file),
-                        'episode_idx': episode_idx,
-                        'start_idx': start_idx,
-                        'episode_id': episode.get('episode_id', -1),
+                        "batch_idx": batch_idx,
+                        "batch_file": str(batch_file),
+                        "episode_idx": episode_idx,
+                        "start_idx": start_idx,
+                        "episode_id": episode.get("episode_id", -1),
                     }
                     trajectories.append(trajectory)
 
                     # Stop if we've reached max trajectories
-                    if self.max_trajectories and len(trajectories) >= self.max_trajectories:
+                    if (
+                        self.max_trajectories
+                        and len(trajectories) >= self.max_trajectories
+                    ):
                         return trajectories
 
         return trajectories
@@ -125,7 +130,7 @@ class GameplayDataset(Dataset):
 
         # Load from disk
         batch_file = self.batch_files[batch_idx]
-        with open(batch_file, 'rb') as f:
+        with open(batch_file, "rb") as f:
             batch = pickle.load(f)
 
         episode = batch[episode_idx]
@@ -139,8 +144,8 @@ class GameplayDataset(Dataset):
     def _cache_all_data(self):
         """Cache all episodes in memory"""
         for traj in tqdm(self.trajectories, desc="Caching"):
-            batch_idx = traj['batch_idx']
-            episode_idx = traj['episode_idx']
+            batch_idx = traj["batch_idx"]
+            episode_idx = traj["episode_idx"]
             cache_key = (batch_idx, episode_idx)
 
             if cache_key not in self.cache:
@@ -164,10 +169,9 @@ class GameplayDataset(Dataset):
         # Resize if needed
         if frame.shape[1:] != self.resolution:
             import torchvision.transforms.functional as TF
+
             frame = TF.resize(
-                frame.unsqueeze(0),
-                self.resolution,
-                antialias=True
+                frame.unsqueeze(0), self.resolution, antialias=True
             ).squeeze(0)
 
         return frame
@@ -190,12 +194,12 @@ class GameplayDataset(Dataset):
         traj = self.trajectories[idx]
 
         # Load episode
-        episode = self._load_episode(traj['batch_idx'], traj['episode_idx'])
+        episode = self._load_episode(traj["batch_idx"], traj["episode_idx"])
 
-        frames = episode['frames']
-        actions = episode['actions']
+        frames = episode["frames"]
+        actions = episode["actions"]
 
-        start_idx = traj['start_idx']
+        start_idx = traj["start_idx"]
         end_idx = start_idx + self.context_length
 
         # Get context frames and actions
@@ -207,24 +211,22 @@ class GameplayDataset(Dataset):
         target_action = actions[end_idx]
 
         # Preprocess frames
-        context_frames = torch.stack([
-            self._preprocess_frame(frame) for frame in context_frames
-        ])  # (T, 3, H, W)
+        context_frames = torch.stack(
+            [self._preprocess_frame(frame) for frame in context_frames]
+        )  # (T, 3, H, W)
 
         target_frame = self._preprocess_frame(target_frame)  # (3, H, W)
 
         # Convert actions to tensor
-        context_actions = torch.from_numpy(
-            np.array(context_actions, dtype=np.int64)
-        )
+        context_actions = torch.from_numpy(np.array(context_actions, dtype=np.int64))
 
         target_action = torch.tensor(target_action, dtype=torch.long)
 
         return {
-            'context_frames': context_frames,
-            'context_actions': context_actions,
-            'target_frame': target_frame,
-            'target_action': target_action,
+            "context_frames": context_frames,
+            "context_actions": context_actions,
+            "target_frame": target_frame,
+            "target_action": target_action,
         }
 
 

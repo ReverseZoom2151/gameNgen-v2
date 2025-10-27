@@ -3,13 +3,14 @@ ViZDoom Environment Wrapper for GameNGen
 Gymnasium-compatible wrapper for DOOM game
 """
 
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-import cv2
-from typing import Tuple, Dict, Any, Optional
-import vizdoom as vzd
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
+import cv2
+import gymnasium as gym
+import numpy as np
+import vizdoom as vzd
+from gymnasium import spaces
 
 
 class ViZDoomEnv(gym.Env):
@@ -176,12 +177,12 @@ class ViZDoomEnv(gym.Env):
 
         if state is None:
             return {
-                'health': 0,
-                'armor': 0,
-                'ammo': 0,
-                'killcount': 0,
-                'position_x': 0,
-                'position_y': 0,
+                "health": 0,
+                "armor": 0,
+                "ammo": 0,
+                "killcount": 0,
+                "position_x": 0,
+                "position_y": 0,
             }
 
         game_vars = state.game_variables
@@ -189,12 +190,12 @@ class ViZDoomEnv(gym.Env):
         # ViZDoom variables (depends on scenario config)
         # Common variables: health, armor, ammo, killcount
         variables = {
-            'health': game_vars[0] if len(game_vars) > 0 else 0,
-            'armor': game_vars[1] if len(game_vars) > 1 else 0,
-            'ammo': game_vars[2] if len(game_vars) > 2 else 0,
-            'killcount': game_vars[3] if len(game_vars) > 3 else 0,
-            'position_x': game_vars[4] if len(game_vars) > 4 else 0,
-            'position_y': game_vars[5] if len(game_vars) > 5 else 0,
+            "health": game_vars[0] if len(game_vars) > 0 else 0,
+            "armor": game_vars[1] if len(game_vars) > 1 else 0,
+            "ammo": game_vars[2] if len(game_vars) > 2 else 0,
+            "killcount": game_vars[3] if len(game_vars) > 3 else 0,
+            "position_x": game_vars[4] if len(game_vars) > 4 else 0,
+            "position_y": game_vars[5] if len(game_vars) > 5 else 0,
         }
 
         return variables
@@ -210,9 +211,7 @@ class ViZDoomEnv(gym.Env):
         return reward
 
     def reset(
-        self,
-        seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """Reset environment to initial state"""
         super().reset(seed=seed)
@@ -228,11 +227,11 @@ class ViZDoomEnv(gym.Env):
 
         # Initialize previous state
         game_vars = self._get_game_variables()
-        self.prev_health = game_vars['health']
-        self.prev_armor = game_vars['armor']
-        self.prev_ammo = game_vars['ammo']
-        self.prev_killcount = game_vars['killcount']
-        self.prev_position = (game_vars['position_x'], game_vars['position_y'])
+        self.prev_health = game_vars["health"]
+        self.prev_armor = game_vars["armor"]
+        self.prev_ammo = game_vars["ammo"]
+        self.prev_killcount = game_vars["killcount"]
+        self.prev_position = (game_vars["position_x"], game_vars["position_y"])
 
         info = self._get_info()
 
@@ -272,11 +271,11 @@ class ViZDoomEnv(gym.Env):
         self.episode_length += 1
 
         # Update previous state
-        self.prev_health = game_vars['health']
-        self.prev_armor = game_vars['armor']
-        self.prev_ammo = game_vars['ammo']
-        self.prev_killcount = game_vars['killcount']
-        self.prev_position = (game_vars['position_x'], game_vars['position_y'])
+        self.prev_health = game_vars["health"]
+        self.prev_armor = game_vars["armor"]
+        self.prev_ammo = game_vars["ammo"]
+        self.prev_killcount = game_vars["killcount"]
+        self.prev_position = (game_vars["position_x"], game_vars["position_y"])
 
         info = self._get_info()
 
@@ -287,12 +286,12 @@ class ViZDoomEnv(gym.Env):
         game_vars = self._get_game_variables()
 
         return {
-            'episode_return': self.episode_return,
-            'episode_length': self.episode_length,
-            'health': game_vars['health'],
-            'armor': game_vars['armor'],
-            'ammo': game_vars['ammo'],
-            'killcount': game_vars['killcount'],
+            "episode_return": self.episode_return,
+            "episode_length": self.episode_length,
+            "health": game_vars["health"],
+            "armor": game_vars["armor"],
+            "ammo": game_vars["ammo"],
+            "killcount": game_vars["killcount"],
         }
 
     def render(self):
@@ -301,7 +300,7 @@ class ViZDoomEnv(gym.Env):
             return self._get_observation()
         elif self.render_mode == "human":
             obs = self._get_observation()
-            cv2.imshow('ViZDoom', cv2.cvtColor(obs, cv2.COLOR_RGB2BGR))
+            cv2.imshow("ViZDoom", cv2.cvtColor(obs, cv2.COLOR_RGB2BGR))
             cv2.waitKey(1)
             return obs
         return None
@@ -344,12 +343,12 @@ class ViZDoomEnvWithPaperReward(ViZDoomEnv):
         reward = 0.0
 
         # Get current variables
-        health = game_vars['health']
-        armor = game_vars['armor']
-        ammo = game_vars['ammo']
-        killcount = game_vars['killcount']
-        pos_x = game_vars['position_x']
-        pos_y = game_vars['position_y']
+        health = game_vars["health"]
+        armor = game_vars["armor"]
+        ammo = game_vars["ammo"]
+        killcount = game_vars["killcount"]
+        pos_x = game_vars["position_x"]
+        pos_y = game_vars["position_y"]
 
         # 1. Player hit (health decreased)
         if self.prev_health is not None and health < self.prev_health:
@@ -365,7 +364,7 @@ class ViZDoomEnvWithPaperReward(ViZDoomEnv):
             kills = killcount - self.prev_killcount
             if kills > 0:
                 reward += 1000 * kills  # Enemy kill reward
-                reward += 300 * kills   # Also count as hits
+                reward += 300 * kills  # Also count as hits
 
         # 5. Item/weapon pickup (heuristic: health or armor increase)
         if self.prev_health is not None and health > self.prev_health:
@@ -411,7 +410,10 @@ class ViZDoomEnvWithPaperReward(ViZDoomEnv):
 
         # Add starting position
         game_vars = self._get_game_variables()
-        current_pos = (int(game_vars['position_x'] / 100), int(game_vars['position_y'] / 100))
+        current_pos = (
+            int(game_vars["position_x"] / 100),
+            int(game_vars["position_y"] / 100),
+        )
         self.visited_positions.add(current_pos)
 
         return obs, info
@@ -496,4 +498,5 @@ if __name__ == "__main__":
         print("\nMake sure ViZDoom is installed:")
         print("  pip install vizdoom")
         import traceback
+
         traceback.print_exc()

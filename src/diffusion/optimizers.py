@@ -3,9 +3,10 @@ Optimizers for GameNGen
 Paper uses Adafactor for Tier 3 (Section 4.2)
 """
 
-import torch
-from typing import Iterable, Tuple, Optional
+from typing import Iterable, Optional, Tuple
+
 import numpy as np
+import torch
 
 
 class Adafactor(torch.optim.Optimizer):
@@ -64,9 +65,7 @@ class Adafactor(torch.optim.Optimizer):
         """Compute learning rate"""
         if param_group["lr"] is None:
             min_step = (
-                1e-6 * param_group["step"]
-                if param_group["warmup_init"]
-                else 1e-2
+                1e-6 * param_group["step"] if param_group["warmup_init"] else 1e-2
             )
             rel_step_sz = min(min_step, 1.0 / np.sqrt(param_group["step"]))
             param_group["lr"] = rel_step_sz * param_scale
@@ -150,14 +149,13 @@ class Adafactor(torch.optim.Optimizer):
                 decay_rate = 1 - (state["step"] + 1) ** param_group["decay_rate"]
 
                 if factored:
-                    update = grad ** 2 + eps_0
+                    update = grad**2 + eps_0
                     state["exp_avg_sq_row"].mul_(decay_rate).add_(
                         update.mean(dim=list(range(1, len(grad_shape)))),
-                        alpha=1 - decay_rate
+                        alpha=1 - decay_rate,
                     )
                     state["exp_avg_sq_col"].mul_(decay_rate).add_(
-                        update.mean(dim=0).flatten(),
-                        alpha=1 - decay_rate
+                        update.mean(dim=0).flatten(), alpha=1 - decay_rate
                     )
                     update = self._approx_sq_grad(
                         state["exp_avg_sq_row"], state["exp_avg_sq_col"]
@@ -165,7 +163,7 @@ class Adafactor(torch.optim.Optimizer):
                     update.mul_(grad)
                 else:
                     state["exp_avg_sq"].mul_(decay_rate).add_(
-                        grad ** 2 + eps_0, alpha=1 - decay_rate
+                        grad**2 + eps_0, alpha=1 - decay_rate
                     )
                     update = grad / (state["exp_avg_sq"].sqrt() + eps_1)
 
@@ -205,17 +203,17 @@ def create_optimizer(optimizer_name: str, parameters, config: dict):
     if optimizer_name.lower() == "adamw":
         return torch.optim.AdamW(
             parameters,
-            lr=config['learning_rate'],
-            weight_decay=config.get('weight_decay', 0.0),
-            betas=(config.get('adam_beta1', 0.9), config.get('adam_beta2', 0.999)),
-            eps=config.get('adam_epsilon', 1e-8),
+            lr=config["learning_rate"],
+            weight_decay=config.get("weight_decay", 0.0),
+            betas=(config.get("adam_beta1", 0.9), config.get("adam_beta2", 0.999)),
+            eps=config.get("adam_epsilon", 1e-8),
         )
 
     elif optimizer_name.lower() == "adafactor":
         # Paper's setting: "without weight decay"
         return Adafactor(
             parameters,
-            lr=config['learning_rate'],
+            lr=config["learning_rate"],
             weight_decay=0.0,  # Paper doesn't use weight decay
             scale_parameter=False,
             relative_step=False,

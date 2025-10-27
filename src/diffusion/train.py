@@ -3,22 +3,23 @@ Training script for GameNGen diffusion model
 """
 
 import argparse
-import yaml
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.optim as optim
-from torch.cuda.amp import autocast, GradScaler
-from pathlib import Path
-import sys
-from tqdm import tqdm
-import time
+import yaml
+from torch.cuda.amp import GradScaler, autocast
 from torch.utils.tensorboard import SummaryWriter
-import numpy as np
+from tqdm import tqdm
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.diffusion.model import ActionConditionedDiffusionModel
 from src.diffusion.dataset import create_dataloader
+from src.diffusion.model import ActionConditionedDiffusionModel
 
 
 def compute_metrics(pred_frames: torch.Tensor, target_frames: torch.Tensor) -> dict:
@@ -38,11 +39,11 @@ def compute_metrics(pred_frames: torch.Tensor, target_frames: torch.Tensor) -> d
     if mse > 0:
         psnr = 20 * np.log10(255.0) - 10 * np.log10(mse)
     else:
-        psnr = float('inf')
+        psnr = float("inf")
 
     return {
-        'mse': mse,
-        'psnr': psnr,
+        "mse": mse,
+        "psnr": psnr,
     }
 
 
@@ -66,9 +67,9 @@ def train_step(
     Returns:
         dict with loss
     """
-    target_frame = batch['target_frame'].to(model.device)
-    context_frames = batch['context_frames'].to(model.device)
-    context_actions = batch['context_actions'].to(model.device)
+    target_frame = batch["target_frame"].to(model.device)
+    context_frames = batch["context_frames"].to(model.device)
+    context_actions = batch["context_actions"].to(model.device)
 
     optimizer.zero_grad()
 
@@ -91,9 +92,7 @@ def train_step(
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
 
-    return {
-        'loss': loss.item()
-    }
+    return {"loss": loss.item()}
 
 
 @torch.no_grad()
@@ -123,9 +122,9 @@ def evaluate(
         if i >= num_batches:
             break
 
-        target_frame = batch['target_frame'].to(model.device)
-        context_frames = batch['context_frames'].to(model.device)
-        context_actions = batch['context_actions'].to(model.device)
+        target_frame = batch["target_frame"].to(model.device)
+        context_frames = batch["context_frames"].to(model.device)
+        context_actions = batch["context_actions"].to(model.device)
 
         # Compute loss
         loss = model(target_frame, context_frames, context_actions)
@@ -133,22 +132,20 @@ def evaluate(
 
         # Generate frames
         generated = model.generate(
-            context_frames,
-            context_actions,
-            num_inference_steps=4
+            context_frames, context_actions, num_inference_steps=4
         )
 
         # Compute metrics
         metrics = compute_metrics(generated, target_frame)
-        total_psnr += metrics['psnr'] * target_frame.shape[0]
+        total_psnr += metrics["psnr"] * target_frame.shape[0]
 
         num_samples += target_frame.shape[0]
 
     model.train()
 
     return {
-        'loss': total_loss / num_samples,
-        'psnr': total_psnr / num_samples,
+        "loss": total_loss / num_samples,
+        "psnr": total_psnr / num_samples,
     }
 
 
@@ -156,19 +153,19 @@ def train(config: dict):
     """Main training loop"""
 
     # Setup
-    device = config.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
-    output_dir = Path(config['checkpoint_dir'])
+    device = config.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+    output_dir = Path(config["checkpoint_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    log_dir = Path(config['log_dir'])
+    log_dir = Path(config["log_dir"])
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # TensorBoard
-    writer = SummaryWriter(log_dir / config['experiment_name'])
+    writer = SummaryWriter(log_dir / config["experiment_name"])
 
-    print("="*60)
+    print("=" * 60)
     print("GameNGen Diffusion Model Training")
-    print("="*60)
+    print("=" * 60)
     print(f"Device: {device}")
     print(f"Output directory: {output_dir}")
     print(f"Log directory: {log_dir}")
@@ -177,14 +174,14 @@ def train(config: dict):
     print("\nCreating dataloaders...")
 
     train_dataloader = create_dataloader(
-        data_dir=config['data_dir'],
-        batch_size=config['diffusion']['batch_size'],
-        context_length=config['diffusion']['context_length'],
+        data_dir=config["data_dir"],
+        batch_size=config["diffusion"]["batch_size"],
+        context_length=config["diffusion"]["context_length"],
         resolution=(
-            config['environment']['resolution']['height'],
-            config['environment']['resolution']['width']
+            config["environment"]["resolution"]["height"],
+            config["environment"]["resolution"]["width"],
         ),
-        num_workers=config.get('num_workers', 4),
+        num_workers=config.get("num_workers", 4),
         shuffle=True,
     )
 
@@ -193,16 +190,16 @@ def train(config: dict):
     # Create model
     print("\nCreating model...")
 
-    use_amp = config.get('mixed_precision', True) and device == 'cuda'
+    use_amp = config.get("mixed_precision", True) and device == "cuda"
     dtype = torch.float16 if use_amp else torch.float32
 
     model = ActionConditionedDiffusionModel(
-        pretrained_model_name=config['diffusion']['pretrained_model'],
-        num_actions=config['environment'].get('num_actions', 3),
-        action_embedding_dim=config['diffusion']['action_embedding_dim'],
-        context_length=config['diffusion']['context_length'],
-        num_noise_buckets=config['diffusion']['noise_augmentation']['num_buckets'],
-        max_noise_level=config['diffusion']['noise_augmentation']['max_noise_level'],
+        pretrained_model_name=config["diffusion"]["pretrained_model"],
+        num_actions=config["environment"].get("num_actions", 3),
+        action_embedding_dim=config["diffusion"]["action_embedding_dim"],
+        context_length=config["diffusion"]["context_length"],
+        num_noise_buckets=config["diffusion"]["noise_augmentation"]["num_buckets"],
+        max_noise_level=config["diffusion"]["noise_augmentation"]["max_noise_level"],
         device=device,
         dtype=dtype,
     )
@@ -212,10 +209,10 @@ def train(config: dict):
 
     optimizer = optim.AdamW(
         model.parameters(),
-        lr=config['diffusion']['learning_rate'],
-        weight_decay=config['diffusion']['weight_decay'],
-        betas=(config['diffusion']['adam_beta1'], config['diffusion']['adam_beta2']),
-        eps=config['diffusion']['adam_epsilon'],
+        lr=config["diffusion"]["learning_rate"],
+        weight_decay=config["diffusion"]["weight_decay"],
+        betas=(config["diffusion"]["adam_beta1"], config["diffusion"]["adam_beta2"]),
+        eps=config["diffusion"]["adam_epsilon"],
     )
 
     # Gradient scaler for mixed precision
@@ -229,28 +226,28 @@ def train(config: dict):
         print(f"\nResuming from checkpoint: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location=device)
 
-        model.unet.load_state_dict(checkpoint['unet'])
-        model.action_embedding.load_state_dict(checkpoint['action_embedding'])
-        model.noise_aug_embedding.load_state_dict(checkpoint['noise_aug_embedding'])
-        model.action_proj.load_state_dict(checkpoint['action_proj'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        start_step = checkpoint['step']
+        model.unet.load_state_dict(checkpoint["unet"])
+        model.action_embedding.load_state_dict(checkpoint["action_embedding"])
+        model.noise_aug_embedding.load_state_dict(checkpoint["noise_aug_embedding"])
+        model.action_proj.load_state_dict(checkpoint["action_proj"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        start_step = checkpoint["step"]
 
         print(f"Resumed from step {start_step}")
 
     # Training parameters
-    num_train_steps = config['diffusion']['num_train_steps']
-    save_every = config['diffusion']['save_every_n_steps']
-    eval_every = config['diffusion']['eval_every_n_steps']
-    log_every = config['logging']['log_interval']
+    num_train_steps = config["diffusion"]["num_train_steps"]
+    save_every = config["diffusion"]["save_every_n_steps"]
+    eval_every = config["diffusion"]["eval_every_n_steps"]
+    log_every = config["logging"]["log_interval"]
 
     # Training loop
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"Starting training from step {start_step}")
     print(f"Total steps: {num_train_steps}")
     print(f"Batch size: {config['diffusion']['batch_size']}")
     print(f"Mixed precision: {use_amp}")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     model.train()
     global_step = start_step
@@ -259,11 +256,7 @@ def train(config: dict):
 
     dataloader_iter = iter(train_dataloader)
 
-    pbar = tqdm(
-        initial=start_step,
-        total=num_train_steps,
-        desc="Training"
-    )
+    pbar = tqdm(initial=start_step, total=num_train_steps, desc="Training")
 
     while global_step < num_train_steps:
         try:
@@ -274,11 +267,9 @@ def train(config: dict):
             batch = next(dataloader_iter)
 
         # Training step
-        step_output = train_step(
-            model, batch, optimizer, scaler, use_amp=use_amp
-        )
+        step_output = train_step(model, batch, optimizer, scaler, use_amp=use_amp)
 
-        loss = step_output['loss']
+        loss = step_output["loss"]
         running_loss += loss
 
         global_step += 1
@@ -290,64 +281,67 @@ def train(config: dict):
             elapsed = time.time() - start_time
             steps_per_sec = log_every / elapsed
 
-            pbar.set_postfix({
-                'loss': f'{avg_loss:.4f}',
-                'steps/s': f'{steps_per_sec:.2f}'
-            })
+            pbar.set_postfix(
+                {"loss": f"{avg_loss:.4f}", "steps/s": f"{steps_per_sec:.2f}"}
+            )
 
-            writer.add_scalar('train/loss', avg_loss, global_step)
-            writer.add_scalar('train/steps_per_sec', steps_per_sec, global_step)
+            writer.add_scalar("train/loss", avg_loss, global_step)
+            writer.add_scalar("train/steps_per_sec", steps_per_sec, global_step)
 
             running_loss = 0.0
             start_time = time.time()
 
         # Evaluation
         if global_step % eval_every == 0:
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print(f"Evaluating at step {global_step}")
 
-            eval_metrics = evaluate(
-                model, train_dataloader, num_batches=10
-            )
+            eval_metrics = evaluate(model, train_dataloader, num_batches=10)
 
             print(f"Evaluation metrics:")
             print(f"  Loss: {eval_metrics['loss']:.4f}")
             print(f"  PSNR: {eval_metrics['psnr']:.2f}")
-            print("="*60 + "\n")
+            print("=" * 60 + "\n")
 
-            writer.add_scalar('eval/loss', eval_metrics['loss'], global_step)
-            writer.add_scalar('eval/psnr', eval_metrics['psnr'], global_step)
+            writer.add_scalar("eval/loss", eval_metrics["loss"], global_step)
+            writer.add_scalar("eval/psnr", eval_metrics["psnr"], global_step)
 
         # Save checkpoint
         if global_step % save_every == 0 or global_step == num_train_steps:
             checkpoint_file = output_dir / f"checkpoint_step_{global_step}.pt"
 
-            torch.save({
-                'step': global_step,
-                'unet': model.unet.state_dict(),
-                'action_embedding': model.action_embedding.state_dict(),
-                'noise_aug_embedding': model.noise_aug_embedding.state_dict(),
-                'action_proj': model.action_proj.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'config': config,
-            }, checkpoint_file)
+            torch.save(
+                {
+                    "step": global_step,
+                    "unet": model.unet.state_dict(),
+                    "action_embedding": model.action_embedding.state_dict(),
+                    "noise_aug_embedding": model.noise_aug_embedding.state_dict(),
+                    "action_proj": model.action_proj.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "config": config,
+                },
+                checkpoint_file,
+            )
 
             # Also save as latest
             latest_file = output_dir / "latest_checkpoint.pt"
-            torch.save({
-                'step': global_step,
-                'unet': model.unet.state_dict(),
-                'action_embedding': model.action_embedding.state_dict(),
-                'noise_aug_embedding': model.noise_aug_embedding.state_dict(),
-                'action_proj': model.action_proj.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'config': config,
-            }, latest_file)
+            torch.save(
+                {
+                    "step": global_step,
+                    "unet": model.unet.state_dict(),
+                    "action_embedding": model.action_embedding.state_dict(),
+                    "noise_aug_embedding": model.noise_aug_embedding.state_dict(),
+                    "action_proj": model.action_proj.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "config": config,
+                },
+                latest_file,
+            )
 
             print(f"\n✓ Saved checkpoint: {checkpoint_file}\n")
 
             # Keep only last N checkpoints
-            keep_last_n = config['diffusion']['keep_last_n_checkpoints']
+            keep_last_n = config["diffusion"]["keep_last_n_checkpoints"]
             if keep_last_n > 0:
                 checkpoints = sorted(output_dir.glob("checkpoint_step_*.pt"))
                 if len(checkpoints) > keep_last_n:
@@ -356,10 +350,10 @@ def train(config: dict):
 
     pbar.close()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Training complete!")
     print(f"Final checkpoint saved to: {output_dir}")
-    print("="*60)
+    print("=" * 60)
 
     writer.close()
 
@@ -370,51 +364,37 @@ def main():
         "--config",
         type=str,
         default="configs/tier1_chrome_dino.yaml",
-        help="Path to config file"
+        help="Path to config file",
     )
     parser.add_argument(
-        "--data",
-        type=str,
-        default=None,
-        help="Override data directory"
+        "--data", type=str, default=None, help="Override data directory"
     )
     parser.add_argument(
-        "--steps",
-        type=int,
-        default=None,
-        help="Override number of training steps"
+        "--steps", type=int, default=None, help="Override number of training steps"
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=None,
-        help="Override batch size"
+        "--batch_size", type=int, default=None, help="Override batch size"
     )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default=None,
-        help="Device (cuda/cpu)"
-    )
+    parser.add_argument("--device", type=str, default=None, help="Device (cuda/cpu)")
 
     args = parser.parse_args()
 
     # Load config
-    with open(args.config, 'r') as f:
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
     # Apply overrides
     if args.data:
-        config['data_dir'] = args.data
+        config["data_dir"] = args.data
 
     if args.steps:
-        config['diffusion']['num_train_steps'] = args.steps
+        config["diffusion"]["num_train_steps"] = args.steps
 
     if args.batch_size:
-        config['diffusion']['batch_size'] = args.batch_size
+        config["diffusion"]["batch_size"] = args.batch_size
 
     if args.device:
-        config['device'] = args.device
+        config["device"] = args.device
 
     # Train
     train(config)

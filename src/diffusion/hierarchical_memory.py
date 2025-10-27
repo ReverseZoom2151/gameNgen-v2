@@ -11,11 +11,12 @@ This implementation provides:
 - Long-term: Key frames from entire gameplay session
 """
 
-import torch
-import torch.nn as nn
 from collections import deque
 from typing import List, Tuple
+
 import numpy as np
+import torch
+import torch.nn as nn
 
 
 class MemoryCompressor(nn.Module):
@@ -39,7 +40,7 @@ class MemoryCompressor(nn.Module):
             input_size=latent_dim * 8 * 8,  # Flattened latent
             hidden_size=hidden_dim,
             num_layers=2,
-            batch_first=True
+            batch_first=True,
         )
 
         # Compression layer
@@ -175,16 +176,22 @@ class HierarchicalMemoryGameNGen(nn.Module):
         # Compress to mid-term if needed
         if self._should_compress() and len(self.short_term) >= self.compress_every_n:
             # Get last N frames
-            frames_to_compress = list(self.short_term)[-self.compress_every_n:]
+            frames_to_compress = list(self.short_term)[-self.compress_every_n :]
 
             # Convert to tensor and encode
-            frames_tensor = torch.from_numpy(
-                np.stack(frames_to_compress)
-            ).permute(0, 3, 1, 2).float().unsqueeze(0).to(self.device)  # (1, N, 3, H, W)
+            frames_tensor = (
+                torch.from_numpy(np.stack(frames_to_compress))
+                .permute(0, 3, 1, 2)
+                .float()
+                .unsqueeze(0)
+                .to(self.device)
+            )  # (1, N, 3, H, W)
 
             # Encode to latents
             with torch.no_grad():
-                latents = self.base_model.encode_frames(frames_tensor)  # (1, N, 4, h, w)
+                latents = self.base_model.encode_frames(
+                    frames_tensor
+                )  # (1, N, 4, h, w)
 
                 # Compress
                 compressed = self.compressor(latents)  # (1, compressed_dim)
@@ -193,11 +200,13 @@ class HierarchicalMemoryGameNGen(nn.Module):
 
         # Check if key frame
         if self._is_key_frame(frame, action):
-            self.long_term.append({
-                'frame': frame.copy(),
-                'action': action,
-                'timestamp': self.frame_count,
-            })
+            self.long_term.append(
+                {
+                    "frame": frame.copy(),
+                    "action": action,
+                    "timestamp": self.frame_count,
+                }
+            )
 
         self.frame_count += 1
 
@@ -210,8 +219,8 @@ class HierarchicalMemoryGameNGen(nn.Module):
             context_actions: (1, context_length)
         """
         # Use short-term memory for explicit frames
-        frames = list(self.short_term)[-self.base_model.context_length:]
-        actions = list(self.short_term_actions)[-self.base_model.context_length:]
+        frames = list(self.short_term)[-self.base_model.context_length :]
+        actions = list(self.short_term_actions)[-self.base_model.context_length :]
 
         # Pad if needed
         while len(frames) < self.base_model.context_length:
@@ -250,7 +259,7 @@ class HierarchicalMemoryGameNGen(nn.Module):
                 context_frames,
                 context_actions,
                 num_inference_steps=num_inference_steps,
-                guidance_scale=1.5
+                guidance_scale=1.5,
             )
 
         # Convert to numpy
@@ -265,14 +274,14 @@ class HierarchicalMemoryGameNGen(nn.Module):
     def get_memory_stats(self) -> dict:
         """Get current memory statistics"""
         return {
-            'short_term_frames': len(self.short_term),
-            'mid_term_compressed': len(self.mid_term),
-            'long_term_key_frames': len(self.long_term),
-            'total_frames_seen': self.frame_count,
-            'effective_context_seconds': (
-                len(self.short_term) * 0.05 +  # Short-term
-                len(self.mid_term) * self.compress_every_n * 0.05  # Mid-term
-            )
+            "short_term_frames": len(self.short_term),
+            "mid_term_compressed": len(self.mid_term),
+            "long_term_key_frames": len(self.long_term),
+            "total_frames_seen": self.frame_count,
+            "effective_context_seconds": (
+                len(self.short_term) * 0.05  # Short-term
+                + len(self.mid_term) * self.compress_every_n * 0.05  # Mid-term
+            ),
         }
 
 

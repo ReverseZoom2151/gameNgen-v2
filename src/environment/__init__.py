@@ -1,8 +1,11 @@
 """Game environment wrappers"""
+
 from .chrome_dino_env import ChromeDinoEnv, SimpleDinoEnv
 
 try:
-    from .vizdoom_env import ViZDoomEnv, ViZDoomEnvWithPaperReward, create_vizdoom_env
+    from .vizdoom_env import (ViZDoomEnv, ViZDoomEnvWithPaperReward,
+                              create_vizdoom_env)
+
     VIZDOOM_AVAILABLE = True
 except ImportError:
     VIZDOOM_AVAILABLE = False

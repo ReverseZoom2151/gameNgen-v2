@@ -3,14 +3,15 @@ DQN Agent for Chrome Dino Game
 Based on paper's Appendix A.10 - uses DQN with experience replay
 """
 
+import random
+from collections import deque
+from typing import Optional, Tuple
+
+import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from collections import deque
-import random
-from typing import Tuple, Optional
-import gymnasium as gym
 
 
 class DQNNetwork(nn.Module):
@@ -87,7 +88,7 @@ class ReplayBuffer:
         action: int,
         reward: float,
         next_state: np.ndarray,
-        done: bool
+        done: bool,
     ):
         """Add experience to buffer"""
         self.buffer.append((state, action, reward, next_state, done))
@@ -177,7 +178,7 @@ class DQNAgent:
         action: int,
         reward: float,
         next_state: np.ndarray,
-        done: bool
+        done: bool,
     ):
         """Store transition in replay buffer"""
         self.memory.push(state, action, reward, next_state, done)
@@ -263,7 +264,9 @@ if __name__ == "__main__":
 
     print(f"Device: {agent.device}")
     print(f"Policy Network:\n{agent.policy_net}")
-    print(f"Number of parameters: {sum(p.numel() for p in agent.policy_net.parameters())}")
+    print(
+        f"Number of parameters: {sum(p.numel() for p in agent.policy_net.parameters())}"
+    )
 
     # Test forward pass
     state, _ = env.reset()

@@ -6,17 +6,18 @@ Based on paper Section 5.1: Human Evaluation
 and 3.2 seconds) of our simulation side by side with the real game."
 """
 
+import json
 import random
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List, Optional
-import json
-import time
-from dataclasses import dataclass, asdict
 
 
 @dataclass
 class EvaluationClip:
     """Single evaluation clip"""
+
     clip_id: int
     duration_seconds: float
     real_video_path: str
@@ -27,6 +28,7 @@ class EvaluationClip:
 @dataclass
 class EvaluationResult:
     """Result from single evaluation"""
+
     clip_id: int
     duration_seconds: float
     user_choice: str  # "left" or "right"
@@ -49,7 +51,7 @@ class HumanEvaluationFramework:
     def __init__(
         self,
         output_dir: str = "human_eval_results",
-        clip_lengths: List[float] = [1.6, 3.2]
+        clip_lengths: List[float] = [1.6, 3.2],
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +63,7 @@ class HumanEvaluationFramework:
         self,
         real_videos: List[str],
         fake_videos: List[str],
-        num_clips_per_length: int = 65  # 130 total / 2 lengths
+        num_clips_per_length: int = 65,  # 130 total / 2 lengths
     ) -> List[EvaluationClip]:
         """
         Create evaluation clip pairs
@@ -91,7 +93,7 @@ class HumanEvaluationFramework:
                     duration_seconds=duration,
                     real_video_path=real_video,
                     fake_video_path=fake_video,
-                    real_is_on_left=real_on_left
+                    real_is_on_left=real_on_left,
                 )
 
                 clips.append(clip)
@@ -103,21 +105,19 @@ class HumanEvaluationFramework:
     def save_evaluation_protocol(self, filename: str = "evaluation_protocol.json"):
         """Save evaluation protocol for reproducibility"""
         protocol = {
-            'num_clips': len(self.evaluation_clips),
-            'clip_lengths': self.clip_lengths,
-            'clips': [asdict(clip) for clip in self.evaluation_clips]
+            "num_clips": len(self.evaluation_clips),
+            "clip_lengths": self.clip_lengths,
+            "clips": [asdict(clip) for clip in self.evaluation_clips],
         }
 
         output_path = self.output_dir / filename
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(protocol, f, indent=2)
 
         print(f"Saved evaluation protocol to {output_path}")
 
     def run_evaluation_session(
-        self,
-        evaluator_id: str,
-        start_clip_idx: int = 0
+        self, evaluator_id: str, start_clip_idx: int = 0
     ) -> List[EvaluationResult]:
         """
         Run evaluation session with human rater
@@ -129,9 +129,9 @@ class HumanEvaluationFramework:
         Returns:
             List of evaluation results
         """
-        print("="*70)
+        print("=" * 70)
         print("GameNGen Human Evaluation Session")
-        print("="*70)
+        print("=" * 70)
         print(f"Evaluator ID: {evaluator_id}")
         print(f"Total clips: {len(self.evaluation_clips)}")
         print(f"Starting from clip: {start_clip_idx}")
@@ -141,23 +141,29 @@ class HumanEvaluationFramework:
         print("- Press 'L' if you think LEFT is real")
         print("- Press 'R' if you think RIGHT is real")
         print("- Press 'Q' to quit and save progress")
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
         results = []
 
         for i in range(start_clip_idx, len(self.evaluation_clips)):
             clip = self.evaluation_clips[i]
 
-            print(f"\nClip {i+1}/{len(self.evaluation_clips)} "
-                  f"(Duration: {clip.duration_seconds}s)")
+            print(
+                f"\nClip {i+1}/{len(self.evaluation_clips)} "
+                f"(Duration: {clip.duration_seconds}s)"
+            )
 
             start_time = time.time()
 
             # In actual implementation, would display videos side by side
             # For now, just simulate the interface
             print(f"  [Simulated] Showing clip {clip.clip_id}")
-            print(f"  Left: {'REAL' if clip.real_is_on_left else 'FAKE'} (hidden from user)")
-            print(f"  Right: {'FAKE' if clip.real_is_on_left else 'REAL'} (hidden from user)")
+            print(
+                f"  Left: {'REAL' if clip.real_is_on_left else 'FAKE'} (hidden from user)"
+            )
+            print(
+                f"  Right: {'FAKE' if clip.real_is_on_left else 'REAL'} (hidden from user)"
+            )
 
             # Simulate user input (in real implementation, would wait for keypress)
             print("\n  Press 'L' for left, 'R' for right, 'Q' to quit:")
@@ -166,17 +172,16 @@ class HumanEvaluationFramework:
             # In production, use: choice = input().lower()
             choice = "demo_mode"
 
-            if choice == 'q':
+            if choice == "q":
                 print("\nQuitting and saving progress...")
                 break
 
             elapsed = time.time() - start_time
 
             # Record result
-            if choice in ['l', 'r']:
-                correct = (
-                    (choice == 'l' and clip.real_is_on_left) or
-                    (choice == 'r' and not clip.real_is_on_left)
+            if choice in ["l", "r"]:
+                correct = (choice == "l" and clip.real_is_on_left) or (
+                    choice == "r" and not clip.real_is_on_left
                 )
 
                 # Ask for confidence (1-5)
@@ -189,7 +194,7 @@ class HumanEvaluationFramework:
                     user_choice=choice,
                     correct=correct,
                     confidence=confidence,
-                    time_taken_seconds=elapsed
+                    time_taken_seconds=elapsed,
                 )
 
                 results.append(result)
@@ -205,14 +210,14 @@ class HumanEvaluationFramework:
     def save_results(self, evaluator_id: str, results: List[EvaluationResult]):
         """Save evaluation results"""
         results_data = {
-            'evaluator_id': evaluator_id,
-            'timestamp': time.time(),
-            'num_clips_evaluated': len(results),
-            'results': [asdict(r) for r in results]
+            "evaluator_id": evaluator_id,
+            "timestamp": time.time(),
+            "num_clips_evaluated": len(results),
+            "results": [asdict(r) for r in results],
         }
 
         filename = self.output_dir / f"results_{evaluator_id}.json"
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             json.dump(results_data, f, indent=2)
 
         print(f"\nResults saved to {filename}")
@@ -234,14 +239,14 @@ class HumanEvaluationFramework:
             dur_correct = sum(1 for r in dur_results if r.correct)
             dur_accuracy = dur_correct / len(dur_results) * 100 if dur_results else 0
             duration_stats[dur] = {
-                'count': len(dur_results),
-                'correct': dur_correct,
-                'accuracy': dur_accuracy
+                "count": len(dur_results),
+                "correct": dur_correct,
+                "accuracy": dur_accuracy,
             }
 
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Evaluation Summary:")
-        print("="*70)
+        print("=" * 70)
         print(f"Total clips evaluated: {len(results)}")
         print(f"Correct identifications: {correct_count}/{len(results)}")
         print(f"Overall accuracy: {accuracy:.1f}%")
@@ -250,9 +255,11 @@ class HumanEvaluationFramework:
 
         for dur, stats in sorted(duration_stats.items()):
             print(f"{dur}s clips:")
-            print(f"  Accuracy: {stats['accuracy']:.1f}% ({stats['correct']}/{stats['count']})")
+            print(
+                f"  Accuracy: {stats['accuracy']:.1f}% ({stats['correct']}/{stats['count']})"
+            )
 
-        print("="*70)
+        print("=" * 70)
 
     def analyze_results(self, results_dir: Optional[str] = None) -> dict:
         """
@@ -274,9 +281,9 @@ class HumanEvaluationFramework:
         evaluator_count = 0
 
         for result_file in results_dir.glob("results_*.json"):
-            with open(result_file, 'r') as f:
+            with open(result_file, "r") as f:
                 data = json.load(f)
-                all_results.extend(data['results'])
+                all_results.extend(data["results"])
                 evaluator_count += 1
 
         if not all_results:
@@ -284,9 +291,7 @@ class HumanEvaluationFramework:
             return {}
 
         # Convert to EvaluationResult objects
-        results = [
-            EvaluationResult(**r) for r in all_results
-        ]
+        results = [EvaluationResult(**r) for r in all_results]
 
         # Compute statistics
         total = len(results)
@@ -300,23 +305,23 @@ class HumanEvaluationFramework:
             if dur_results:
                 dur_correct = sum(1 for r in dur_results if r.correct)
                 duration_stats[dur] = {
-                    'total': len(dur_results),
-                    'correct': dur_correct,
-                    'accuracy': dur_correct / len(dur_results) * 100
+                    "total": len(dur_results),
+                    "correct": dur_correct,
+                    "accuracy": dur_correct / len(dur_results) * 100,
                 }
 
         stats = {
-            'evaluators': evaluator_count,
-            'total_clips': total,
-            'correct': correct,
-            'accuracy': accuracy,
-            'by_duration': duration_stats,
+            "evaluators": evaluator_count,
+            "total_clips": total,
+            "correct": correct,
+            "accuracy": accuracy,
+            "by_duration": duration_stats,
         }
 
         # Print report
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Human Evaluation Analysis")
-        print("="*70)
+        print("=" * 70)
         print(f"Evaluators: {evaluator_count}")
         print(f"Total evaluations: {total}")
         print(f"Overall accuracy: {accuracy:.1f}%")
@@ -324,9 +329,11 @@ class HumanEvaluationFramework:
         print()
 
         for dur, data in duration_stats.items():
-            print(f"{dur}s clips: {data['accuracy']:.1f}% ({data['correct']}/{data['total']})")
+            print(
+                f"{dur}s clips: {data['accuracy']:.1f}% ({data['correct']}/{data['total']})"
+            )
 
-        print("="*70)
+        print("=" * 70)
 
         return stats
 
@@ -342,7 +349,7 @@ if __name__ == "__main__":
     clips = framework.create_evaluation_clips(
         real_videos=["real1.mp4", "real2.mp4"],
         fake_videos=["fake1.mp4", "fake2.mp4"],
-        num_clips_per_length=5
+        num_clips_per_length=5,
     )
 
     print(f"Created {len(clips)} evaluation clips")

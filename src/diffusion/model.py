@@ -3,11 +3,12 @@ Action-Conditioned Diffusion Model for GameNGen
 Based on Stable Diffusion v1.4 with modifications for action conditioning
 """
 
+from typing import Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from diffusers import DDIMScheduler, AutoencoderKL, UNet2DConditionModel
-from typing import Optional, Union, Tuple
+from diffusers import AutoencoderKL, DDIMScheduler, UNet2DConditionModel
 
 
 class ActionEmbedding(nn.Module):
@@ -88,21 +89,16 @@ class ActionConditionedDiffusionModel(nn.Module):
 
         # Load pretrained components
         self.vae = AutoencoderKL.from_pretrained(
-            pretrained_model_name,
-            subfolder="vae",
-            torch_dtype=dtype
+            pretrained_model_name, subfolder="vae", torch_dtype=dtype
         ).to(device)
 
         self.unet = UNet2DConditionModel.from_pretrained(
-            pretrained_model_name,
-            subfolder="unet",
-            torch_dtype=dtype
+            pretrained_model_name, subfolder="unet", torch_dtype=dtype
         ).to(device)
 
         # Initialize scheduler for training and inference
         self.noise_scheduler = DDIMScheduler.from_pretrained(
-            pretrained_model_name,
-            subfolder="scheduler"
+            pretrained_model_name, subfolder="scheduler"
         )
 
         # Freeze VAE encoder during training (we'll fine-tune decoder separately)
@@ -110,7 +106,9 @@ class ActionConditionedDiffusionModel(nn.Module):
             param.requires_grad = False
 
         # Action embedding layer
-        self.action_embedding = ActionEmbedding(num_actions, action_embedding_dim).to(device)
+        self.action_embedding = ActionEmbedding(num_actions, action_embedding_dim).to(
+            device
+        )
 
         # Noise augmentation embedding
         self.noise_aug_embedding = NoiseAugmentationEmbedding(
@@ -135,7 +133,7 @@ class ActionConditionedDiffusionModel(nn.Module):
             kernel_size=old_conv.kernel_size,
             stride=old_conv.stride,
             padding=old_conv.padding,
-            dtype=dtype
+            dtype=dtype,
         ).to(device)
 
         # Initialize new conv weights: copy original weights for first 4 channels,
@@ -146,8 +144,8 @@ class ActionConditionedDiffusionModel(nn.Module):
             # Initialize weights for context frames with small values
             nn.init.kaiming_normal_(
                 self.unet.conv_in.weight[:, original_in_channels:],
-                mode='fan_out',
-                nonlinearity='relu'
+                mode="fan_out",
+                nonlinearity="relu",
             )
             self.unet.conv_in.weight[:, original_in_channels:] *= 0.01  # Scale down
 
@@ -155,10 +153,16 @@ class ActionConditionedDiffusionModel(nn.Module):
                 self.unet.conv_in.bias.copy_(old_conv.bias)
 
         print("Model initialization complete!")
-        print(f"  VAE: {sum(p.numel() for p in self.vae.parameters()):,} parameters (frozen)")
+        print(
+            f"  VAE: {sum(p.numel() for p in self.vae.parameters()):,} parameters (frozen)"
+        )
         print(f"  U-Net: {sum(p.numel() for p in self.unet.parameters()):,} parameters")
-        print(f"  Action Embedding: {sum(p.numel() for p in self.action_embedding.parameters()):,} parameters")
-        print(f"  Total trainable: {sum(p.numel() for p in self.parameters() if p.requires_grad):,} parameters")
+        print(
+            f"  Action Embedding: {sum(p.numel() for p in self.action_embedding.parameters()):,} parameters"
+        )
+        print(
+            f"  Total trainable: {sum(p.numel() for p in self.parameters() if p.requires_grad):,} parameters"
+        )
 
     def encode_frames(self, frames: torch.Tensor) -> torch.Tensor:
         """
@@ -191,7 +195,9 @@ class ActionConditionedDiffusionModel(nn.Module):
         # Reshape back if needed
         if need_reshape:
             latent_c, latent_h, latent_w = latents.shape[1:]
-            latents = latents.reshape(batch_size, num_frames, latent_c, latent_h, latent_w)
+            latents = latents.reshape(
+                batch_size, num_frames, latent_c, latent_h, latent_w
+            )
 
         return latents
 
@@ -218,9 +224,7 @@ class ActionConditionedDiffusionModel(nn.Module):
         return images
 
     def add_noise_augmentation(
-        self,
-        latents: torch.Tensor,
-        noise_level: Optional[torch.Tensor] = None
+        self, latents: torch.Tensor, noise_level: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Add noise augmentation to latents (for training stability)
@@ -237,10 +241,14 @@ class ActionConditionedDiffusionModel(nn.Module):
 
         # Sample noise level if not provided
         if noise_level is None:
-            noise_level = torch.rand(batch_size, device=self.device) * self.max_noise_level
+            noise_level = (
+                torch.rand(batch_size, device=self.device) * self.max_noise_level
+            )
 
         # Convert to discrete buckets
-        noise_level_ids = (noise_level * self.num_noise_buckets / self.max_noise_level).long()
+        noise_level_ids = (
+            noise_level * self.num_noise_buckets / self.max_noise_level
+        ).long()
         noise_level_ids = noise_level_ids.clamp(0, self.num_noise_buckets - 1)
 
         # Add Gaussian noise
@@ -286,13 +294,17 @@ class ActionConditionedDiffusionModel(nn.Module):
                 context_latents, noise_level
             )
         else:
-            noise_level_ids = torch.zeros(batch_size, device=self.device, dtype=torch.long)
+            noise_level_ids = torch.zeros(
+                batch_size, device=self.device, dtype=torch.long
+            )
 
         # Sample timesteps if not provided
         if timesteps is None:
             timesteps = torch.randint(
-                0, self.noise_scheduler.config.num_train_timesteps,
-                (batch_size,), device=self.device
+                0,
+                self.noise_scheduler.config.num_train_timesteps,
+                (batch_size,),
+                device=self.device,
             ).long()
 
         # Add noise to target latents
@@ -305,7 +317,7 @@ class ActionConditionedDiffusionModel(nn.Module):
             batch_size,
             self.context_length * context_latents.shape[2],
             context_latents.shape[3],
-            context_latents.shape[4]
+            context_latents.shape[4],
         )
 
         # Concatenate in channel dimension
@@ -329,7 +341,7 @@ class ActionConditionedDiffusionModel(nn.Module):
             unet_input,
             timesteps,
             encoder_hidden_states=encoder_hidden_states,
-            return_dict=True
+            return_dict=True,
         ).sample
 
         # Compute loss (velocity parameterization)
@@ -386,7 +398,7 @@ class ActionConditionedDiffusionModel(nn.Module):
             batch_size,
             self.context_length * context_latents.shape[2],
             context_latents.shape[3],
-            context_latents.shape[4]
+            context_latents.shape[4],
         )
 
         # Embed actions
@@ -401,9 +413,12 @@ class ActionConditionedDiffusionModel(nn.Module):
 
         # Initialize latents with noise
         latents = torch.randn(
-            batch_size, 4,
-            context_latents.shape[3], context_latents.shape[4],
-            device=self.device, dtype=self.dtype
+            batch_size,
+            4,
+            context_latents.shape[3],
+            context_latents.shape[4],
+            device=self.device,
+            dtype=self.dtype,
         )
 
         # Set timesteps
@@ -417,27 +432,24 @@ class ActionConditionedDiffusionModel(nn.Module):
 
             # Predict noise
             noise_pred = self.unet(
-                unet_input,
-                t,
-                encoder_hidden_states=encoder_hidden_states
+                unet_input, t, encoder_hidden_states=encoder_hidden_states
             ).sample
 
             # CFG (if guidance_scale > 1.0)
             if guidance_scale > 1.0:
                 # Unconditional prediction (with dropped context)
-                unet_input_uncond = torch.cat([
-                    latents,
-                    torch.zeros_like(context_flat)
-                ], dim=1)
+                unet_input_uncond = torch.cat(
+                    [latents, torch.zeros_like(context_flat)], dim=1
+                )
 
                 noise_pred_uncond = self.unet(
-                    unet_input_uncond,
-                    t,
-                    encoder_hidden_states=encoder_hidden_states
+                    unet_input_uncond, t, encoder_hidden_states=encoder_hidden_states
                 ).sample
 
                 # Apply guidance
-                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred - noise_pred_uncond)
+                noise_pred = noise_pred_uncond + guidance_scale * (
+                    noise_pred - noise_pred_uncond
+                )
 
             # Compute previous sample
             latents = self.noise_scheduler.step(noise_pred, t, latents).prev_sample
@@ -453,36 +465,40 @@ class ActionConditionedDiffusionModel(nn.Module):
     def save_pretrained(self, save_path: str):
         """Save model checkpoint"""
         import os
+
         os.makedirs(save_path, exist_ok=True)
 
-        torch.save({
-            'unet': self.unet.state_dict(),
-            'action_embedding': self.action_embedding.state_dict(),
-            'noise_aug_embedding': self.noise_aug_embedding.state_dict(),
-            'action_proj': self.action_proj.state_dict(),
-            'config': {
-                'num_actions': self.num_actions,
-                'action_embedding_dim': self.action_embedding_dim,
-                'context_length': self.context_length,
-                'num_noise_buckets': self.num_noise_buckets,
-                'max_noise_level': self.max_noise_level,
-            }
-        }, os.path.join(save_path, 'model.pt'))
+        torch.save(
+            {
+                "unet": self.unet.state_dict(),
+                "action_embedding": self.action_embedding.state_dict(),
+                "noise_aug_embedding": self.noise_aug_embedding.state_dict(),
+                "action_proj": self.action_proj.state_dict(),
+                "config": {
+                    "num_actions": self.num_actions,
+                    "action_embedding_dim": self.action_embedding_dim,
+                    "context_length": self.context_length,
+                    "num_noise_buckets": self.num_noise_buckets,
+                    "max_noise_level": self.max_noise_level,
+                },
+            },
+            os.path.join(save_path, "model.pt"),
+        )
 
         print(f"Model saved to {save_path}")
 
     def load_pretrained(self, load_path: str):
         """Load model checkpoint"""
         import os
+
         checkpoint = torch.load(
-            os.path.join(load_path, 'model.pt'),
-            map_location=self.device
+            os.path.join(load_path, "model.pt"), map_location=self.device
         )
 
-        self.unet.load_state_dict(checkpoint['unet'])
-        self.action_embedding.load_state_dict(checkpoint['action_embedding'])
-        self.noise_aug_embedding.load_state_dict(checkpoint['noise_aug_embedding'])
-        self.action_proj.load_state_dict(checkpoint['action_proj'])
+        self.unet.load_state_dict(checkpoint["unet"])
+        self.action_embedding.load_state_dict(checkpoint["action_embedding"])
+        self.noise_aug_embedding.load_state_dict(checkpoint["noise_aug_embedding"])
+        self.action_proj.load_state_dict(checkpoint["action_proj"])
 
         print(f"Model loaded from {load_path}")
 
@@ -496,7 +512,7 @@ if __name__ == "__main__":
         num_actions=3,
         context_length=32,
         device=device,
-        dtype=torch.float32  # Use float32 for testing
+        dtype=torch.float32,  # Use float32 for testing
     )
 
     print("\nModel created successfully!")
@@ -504,8 +520,12 @@ if __name__ == "__main__":
 
     # Test forward pass
     batch_size = 2
-    target_frame = torch.randint(0, 255, (batch_size, 3, 256, 512), dtype=torch.float32).to(device)
-    context_frames = torch.randint(0, 255, (batch_size, 32, 3, 256, 512), dtype=torch.float32).to(device)
+    target_frame = torch.randint(
+        0, 255, (batch_size, 3, 256, 512), dtype=torch.float32
+    ).to(device)
+    context_frames = torch.randint(
+        0, 255, (batch_size, 32, 3, 256, 512), dtype=torch.float32
+    ).to(device)
     actions = torch.randint(0, 3, (batch_size, 32)).to(device)
 
     print("\nTesting forward pass...")
